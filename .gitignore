@@ -1,0 +1,304 @@
+# MyWealth — C# / .NET / Aspire / React / Vite / Tailwind
+
+# ------------------------------------------------------------------------------
+# OS
+# ------------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+*~
+*.swp
+*.swo
+[._]*.s[a-w][a-z]
+
+# ------------------------------------------------------------------------------
+# IDEs and editors
+# ------------------------------------------------------------------------------
+
+# Visual Studio
+.vs/
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.usertasks
+Generated\ Files/
+
+# JetBrains Rider / IntelliJ
+.idea/
+*.sln.iml
+*.iml
+*.iws
+*.ipr
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# VS Code (keep shared settings)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+*.code-workspace
+.history/
+
+# Vim / others
+*.sw?
+Session.vim
+.netrwhist
+
+# ------------------------------------------------------------------------------
+# .NET / C#
+# ------------------------------------------------------------------------------
+
+# Build output (this repo uses a root artifacts/ path via Directory.Build.props)
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+artifacts/
+.artifacts/
+
+# Intermediate / compiler
+*.ilk
+*.meta
+*.obj
+*.idb
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+!Directory.Build.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.tlog
+*.binlog
+MSBuild_Logs/
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+
+# Test results and coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+*.received.*
+BenchmarkDotNet.Artifacts/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+*.dotCover
+.axoCover/*
+!.axoCover/settings.json
+_NCrunch_*
+.NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# Publish / deploy
+publish/
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+PublishScripts/
+*.publishsettings
+
+# ASP.NET / scaffolding
+ScaffoldingReadMe.txt
+StyleCopReport.xml
+
+# Local SQL / EF / SQLite
+*.mdf
+*.ldf
+*.ndf
+*.db
+*.db-shm
+*.db-wal
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+healthchecksdb
+
+# Secrets and certificates
+*.pfx
+*.env
+appsettings.*.local.json
+#*.snk
+
+# Generated OpenAPI spec and TypeScript clients
+src/Web/wwwroot/openapi/
+**/web-api-client.ts
+
+# Misc .NET tooling
+.tye/
+.mfractor/
+.localhistory/
+.vshistory/
+.ionide/
+FodyWeavers.xsd
+MigrationBackup/
+orleans.codegen.cs
+mono_crash.*
+.dotnet/
+.packages/
+
+# ------------------------------------------------------------------------------
+# Aspire
+# ------------------------------------------------------------------------------
+
+# Aspire CLI local state (appHost path lives in aspire.config.json)
+.aspire/
+.modules/
+
+# Azure Developer CLI / local Azure
+.azure/
+**/.azurite/
+
+# Generated publish / manifest output
+aspire-output/
+aspire-manifest.json
+
+# ------------------------------------------------------------------------------
+# Node / React / Vite / Tailwind
+# ------------------------------------------------------------------------------
+
+# Dependencies
+node_modules/
+jspm_packages/
+web_modules/
+bower_components/
+.pnpm-store/
+.npm
+.yarn-integrity
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.yarn/install-state.gz
+
+# Vite / frontend build
+dist/
+dist-ssr/
+.vite/
+*.local
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# TypeScript
+*.tsbuildinfo
+
+# Tailwind / CSS tooling
+.sass-cache/
+.stylelintcache
+
+# ESLint / Prettier
+.eslintcache
+.prettiercache
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Frontend test / storybook output
+coverage/
+*.lcov
+.nyc_output
+storybook-static/
+playwright-report/
+playwright/.cache/
+blob-report/
+test-results/
+
+# Optional frontend caches
+.cache/
+.parcel-cache
+.turbo/
+
+# ------------------------------------------------------------------------------
+# Environment files (keep committed examples)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# ------------------------------------------------------------------------------
+# Windows installers from build output
+# ------------------------------------------------------------------------------
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
