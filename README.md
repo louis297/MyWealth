@@ -2,6 +2,10 @@
 
 The project was generated using the [Clean.Architecture.Solution.Template](https://github.com/jasontaylordev/CleanArchitecture) version 10.8.0.
 
+## Documentation
+
+Shared design docs live in [`docs/`](docs/README.md) (function plan, architecture, domain model, database, API, feature specs, ADRs). Personal working notes go in [`local_docs/`](local_docs/README.md).
+
 ## Build
 
 Run `dotnet build` to build the solution.
