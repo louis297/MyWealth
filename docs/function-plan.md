@@ -1,130 +1,149 @@
----
-title: Function plan
-status: draft
-owner: ""
-last_updated: 2026-08-16
-related:
-  - architecture.md
-  - domain-model.md
-  - database-design.md
-  - api-design.md
+# MyWealth Function Plan (MVP)
+
+**Version**: v0.1  
+**Status**: Draft  
+**Last Updated**: 2026-08-18  
+
 ---
 
-# Function plan
+## 1. Purpose
 
-Product scope and delivery order for MyWealth. Replace the example modules below once the first real slices are chosen.
+This document defines the **MVP feature scope** of MyWealth, a wealth management SaaS demo platform.  
 
-## 1. Problem
+It focuses on **what** the system should do, **who** can do it, and the **main pages/interactions**.  
 
-<!-- One or two paragraphs: who this is for, what is painful today, what success looks like. -->
+Technical implementation details (Commands, Queries, API contracts, etc.) are deliberately excluded and will be covered in Domain Model, Architecture, API Design, or individual Feature Specs.
 
-_MyWealth helps a single person (later: a household) see and manage personal wealth in one place — accounts, holdings, cash flow, and net worth over time._
+---
 
-## 2. Users and tenancy
+## 2. Roles and Permissions Overview
 
-| Actor | Can do | Cannot do |
-| --- | --- | --- |
-| Owner (authenticated user) | CRUD own data, view own reports | See another user's data |
-| Administrator | _TBD — starter role already exists_ | _TBD_ |
-| Guest / anonymous | Register, log in | Anything else |
+| Role            | Can Log In | Description |
+|-----------------|------------|-------------|
+| System Admin    | Yes        | Highest platform authority. Can manage all tenants. |
+| Tenant Admin    | Yes        | Highest authority within a single tenant. Can manage Advisers and Customers of the tenant. |
+| Adviser         | Yes        | Can manage Customers assigned to them, including their Accounts, Holdings, and Transactions. |
+| Customer        | **No**     | Pure business entity. Cannot log in. Must be bound to one Adviser when created. |
 
-**Tenancy decision:** _TBD — default assumption is one user owns their own data. Multi-user household sharing is out of scope until an ADR says otherwise._
+> Note: A Customer must be assigned to an Adviser at creation time.
 
-**Identity today:** ASP.NET Identity with bearer tokens (`/users` Identity API). Seeded admin: `administrator@localhost`. Role constant: `Administrator`.
+---
 
-## 3. Goals and non-goals
+## 3. Feature Modules
 
-### Goals (v1)
+### 3.1 Identity & Authorization
 
-- [ ] _e.g. record accounts and current balances_
-- [ ] _e.g. record transactions and categorize them_
-- [ ] _e.g. compute net worth from accounts + holdings_
-- [ ] _e.g. show a simple dashboard_
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Login                      | Email + password login, returns JWT              | Login page                       | All login-capable roles             |
+| Logout                     | Clear current session                            | Global navigation                | All login-capable roles             |
+| Profile Management         | Update name and password (no avatar)             | Profile page                     | All login-capable roles             |
+| Role-based Access Control  | Control menu visibility and data scope by role   | Global                           | Built-in                            |
 
-### Explicit non-goals (v1)
+---
 
-- [ ] Broker / bank live sync (Plaid, Open Banking, …)
-- [ ] Tax filing
-- [ ] Multi-currency FX engine beyond a stored currency code
-- [ ] Mobile native apps
-- [ ] Multi-tenant SaaS / orgs
+### 3.2 Tenant User Management
 
-## 4. Modules
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Adviser List               | View all Advisers under the current tenant       | Adviser list page                | Tenant Admin                        |
+| Create Adviser             | Create a new Adviser account                     | Create Adviser form              | Tenant Admin                        |
+| Edit Adviser               | Update Adviser information, enable/disable       | Edit Adviser form                | Tenant Admin                        |
+| Delete Adviser             | Delete an Adviser (must handle assigned Customers) | Confirmation dialog            | Tenant Admin                        |
 
-Treat each module as a candidate bounded context. Promote a module to a [feature spec](features/README.md) when you start implementing it.
+---
 
-| Module | Purpose | v1? | Depends on | Feature specs |
-| --- | --- | --- | --- | --- |
-| Identity & profile | Register, login, logout, current user | Yes | — | |
-| Accounts | Cash, bank, credit, brokerage, property, other | _TBD_ | Identity | |
-| Holdings / positions | What is held inside an investment account | _TBD_ | Accounts | |
-| Transactions | Money in/out, transfers, buys/sells | _TBD_ | Accounts | |
-| Categories | Income / expense / transfer taxonomy | _TBD_ | — | |
-| Net worth | Snapshot of assets − liabilities over time | _TBD_ | Accounts, Holdings | |
-| Budget | Planned vs actual spend | Later | Transactions, Categories | |
-| Goals | Target amounts and dates | Later | Net worth | |
-| Import | CSV / statement import | Later | Transactions | |
-| Reports | Cash flow, allocation, performance | Later | Several | |
+### 3.3 Customer Management
 
-Starter leftovers to remove when the first real module lands:
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Customer List              | Search and pagination. Advisers only see their own Customers | Customer list page         | Tenant Admin, Adviser               |
+| Customer Detail            | View basic information + related Accounts overview | Customer detail page           | Tenant Admin, Adviser               |
+| Create Customer            | Create a Customer. **Must bind to an Adviser**   | Create Customer form             | Tenant Admin, Adviser               |
+| Edit Customer              | Update Customer basic information                | Edit Customer form               | Tenant Admin, Adviser               |
+| Delete Customer            | Delete a Customer and related data               | Confirmation dialog              | Tenant Admin, Adviser               |
 
-| Sample module | Location | Action |
-| --- | --- | --- |
-| Todo lists / items | Domain, Application, Web, tests | Replace |
-| Weather forecasts | Application, Web | Remove |
+---
 
-## 5. Delivery phases
+### 3.4 Account Management
 
-### Phase 0 — foundation (current)
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Account List               | View all Accounts of a Customer                  | Customer detail / Account list   | Tenant Admin, Adviser               |
+| Create Account             | Create an Account with type and currency         | Create Account form              | Tenant Admin, Adviser               |
+| Edit Account               | Update Account name, type, status, etc.          | Edit Account form                | Tenant Admin, Adviser               |
+| Delete Account             | Delete an Account (must handle related Holdings and Transactions) | Confirmation dialog     | Tenant Admin, Adviser               |
+| Account Detail             | View total value, holdings overview, recent transactions | Account detail page        | Tenant Admin, Adviser               |
 
-- [x] Clean Architecture + Aspire AppHost
-- [x] SQL Server (`MyWealthDb`) via Aspire
-- [x] ASP.NET Identity + bearer tokens
-- [x] CQRS pipeline (MediatR, FluentValidation, auth, logging)
-- [ ] Replace Todo sample with the first real aggregate
-- [ ] Switch DB init from `EnsureDeleted` / `EnsureCreated` to EF migrations (see [database design](database-design.md))
+**Account Type Enum (MVP)**:
 
-### Phase 1 — _name the first vertical slice_
+| Value       | Description              | Notes                              |
+|-------------|--------------------------|------------------------------------|
+| Bank        | Bank account             | Current / savings accounts         |
+| Cash        | Cash                     | Physical cash                      |
+| Brokerage   | Brokerage account        | Stocks, funds, ETFs, etc.          |
+| Property    | Property                 | Real estate valuation              |
+| Credit      | Liability account        | Credit cards, loans (liabilities)  |
+| Other       | Other                    | Fallback                           |
 
-<!-- One slice that a user can complete end-to-end. Example: "create an account and see it on the dashboard". -->
+---
 
-- [ ] Feature spec: `docs/features/<name>.md`
-- [ ] Domain model update
-- [ ] EF configuration + migration
-- [ ] Commands / queries + validators
-- [ ] Minimal API endpoints
-- [ ] Tests (domain, application, functional)
+### 3.5 Holding Management
 
-### Phase 2 — _next slice_
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Holding List               | View all Holdings under an Account               | Inside Account detail page       | Tenant Admin, Adviser               |
+| Create Holding             | Add a Holding (instrument, quantity, cost basis, etc.) | Create Holding form         | Tenant Admin, Adviser               |
+| Edit Holding               | Update Holding information                       | Edit Holding form                | Tenant Admin, Adviser               |
+| Delete Holding             | Delete a Holding                                 | Confirmation dialog              | Tenant Admin, Adviser               |
 
-- [ ]
+---
 
-### Phase 3 — _next slice_
+### 3.6 Transaction Management
 
-- [ ]
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Transaction List           | Filter by Account, date range, and type          | Transaction list / Account detail | Tenant Admin, Adviser             |
+| Create Transaction         | Support Buy, Sell, Transfer In, Transfer Out, Dividend, Interest, etc. | Create Transaction form | Tenant Admin, Adviser          |
+| Auto-update Holding        | Automatically adjust Holding quantity and cost basis after a transaction | System behavior            | Built-in                            |
 
-## 6. Cross-cutting rules
+---
 
-Capture product rules here so feature specs can point at them instead of restating them.
+### 3.7 Dashboard & Net Worth
 
-| ID | Rule | Status |
-| --- | --- | --- |
-| FR-01 | Every domain entity is owned by a user (or a household, once that exists) | proposed |
-| FR-02 | Money is stored as a precise decimal + ISO currency code; never `float` / `double` | proposed |
-| FR-03 | Soft-delete vs hard-delete is decided per aggregate and written in the feature spec | proposed |
-| FR-04 | Audit fields (`Created`, `CreatedBy`, `LastModified`, `LastModifiedBy`) come from `BaseAuditableEntity` | accepted (already in code) |
-| FR-05 | Write operations go through MediatR commands; reads go through queries | accepted (already in code) |
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Net Worth Overview         | Display current Net Worth (Assets − Liabilities) | Dashboard home                   | Tenant Admin, Adviser               |
+| Asset Allocation View      | Show allocation by Account type or asset class   | Dashboard home                   | Tenant Admin, Adviser               |
+| Account Performance Overview | Simple view of recent changes and returns      | Dashboard home                   | Tenant Admin, Adviser               |
 
-## 7. Open questions
+> Note: Historical Net Worth snapshots are out of scope for MVP.
 
-- Single-user only, or household sharing in v1?
-- Manual entry only, or import in v1?
-- Which currencies, and is FX conversion in scope?
-- Are investment lots / cost basis required for v1, or is a current-value holding enough?
-- Will there be a separate SPA (`webfrontend` is reserved in `Shared/Services.cs`) or stay on Scalar + static files for a while?
+---
 
-## 8. Changelog
+### 3.8 Audit Log
 
-| Date | Change |
-| --- | --- |
-| 2026-08-16 | Template created from the current starter snapshot |
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| View Audit Log             | Record key actions (who, when, what)             | Audit log list page              | Tenant Admin (own tenant), System Admin (all) |
+
+---
+
+## 4. Explicitly Out of Scope for MVP (Future Versions)
+
+- Avatar upload
+- Customer login capability
+- Financial Goals
+- Report export (CSV / PDF)
+- In-app notifications
+- Historical Net Worth snapshots
+- Advanced custom transaction categories
+- Bulk transaction import
+- Automatic multi-currency conversion (currently handled per Account currency)
+
+---
+
+## 5. Next Steps
+
+1. Confirm this Function Plan.
+2. Proceed to English Feature Specs, Domain Model, or Architecture documentation as needed.
