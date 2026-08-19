@@ -1,34 +1,38 @@
 ---
 title: Database design
-status: draft
+status: review
 owner: ""
-last_updated: 2026-08-16
+last_updated: 2026-08-19
 related:
   - domain-model.md
   - architecture.md
   - function-plan.md
+  - adr/0004-money-as-decimal-with-currency.md
+  - adr/0005-shared-database-tenantid-isolation.md
+  - adr/0006-email-password-jwt-authentication.md
+  - adr/0007-baseentity-primary-key-int.md
 ---
 
 # Database design
 
-Physical model for `MyWealthDb`. Conceptual types stay in [domain-model.md](domain-model.md). This file owns tables, keys, indexes, and migrations.
+Physical model for `MyWealthDb`. Conceptual types stay in [domain-model.md](domain-model.md). This file owns tables, keys, indexes, constraints, and migration notes.
 
 ## 1. Platform
 
 | Item | Choice |
 | --- | --- |
 | Engine | SQL Server (Aspire `AddAzureSqlServer("dbserver").RunAsContainer(...)`) |
-| Database name | `MyWealthDb` (`Services.Database`) |
+| Database name | `MyWealthDb` |
 | Access | EF Core 10, `UseSqlServer` |
 | Context | `ApplicationDbContext` : `IdentityDbContext<ApplicationUser>` |
 | Configurations | `Infrastructure/Data/Configurations/*` via `ApplyConfigurationsFromAssembly` |
-| Naming | EF Core defaults today (Pascal-case tables matching CLR types). Change only with an ADR. |
+| Naming | EF Core defaults (Pascal-case tables matching CLR types). Change only with an ADR. |
 
 Connection string is injected by Aspire under the name `MyWealthDb`.
 
-## 2. Lifecycle (important)
+## 2. Lifecycle
 
-Development initialiser (`ApplicationDbContextInitialiser.InitialiseAsync`):
+Development initialiser currently uses:
 
 ```text
 EnsureDeletedAsync()
@@ -36,16 +40,16 @@ EnsureCreatedAsync()
 SeedAsync()
 ```
 
-That **wipes the database on every API start** in Development. Fine for the Todo sample. Not fine once MyWealth data is real.
+This wipes the database on every API start in Development. Acceptable while the model is still changing rapidly.
 
 Planned switch (tick when done):
 
-- [ ] Add EF Core migrations project usage (`dotnet ef migrations add`)
-- [ ] Replace `EnsureDeleted` / `EnsureCreated` with `MigrateAsync` (or apply migrations from AppHost)
-- [ ] Keep seed data idempotent and behind a Development-only flag
-- [ ] Document how to reset a local DB without dropping production-shaped data accidentally
+- [ ] Add EF Core migrations (`dotnet ef migrations add`)
+- [ ] Replace `EnsureDeleted` / `EnsureCreated` with `MigrateAsync`
+- [ ] Keep seed data idempotent and Development-only
+- [ ] Document a safe local reset path
 
-Until then, assume local data is disposable.
+Until migrations are introduced, assume local data is disposable.
 
 ## 3. Conventions
 
@@ -53,163 +57,260 @@ Apply to every new table unless a feature spec overrides them.
 
 | Topic | Convention |
 | --- | --- |
-| Primary key | `Id int` identity (matches `BaseEntity`) |
-| Ownership | `OwnerId nvarchar` (Identity user id) on every user-owned table, indexed |
-| Audit | `Created`, `CreatedBy`, `LastModified`, `LastModifiedBy` via `BaseAuditableEntity` + `AuditableEntityInterceptor` |
+| Primary key | `Id int` identity (matches `BaseEntity` / ADR 0007) |
+| Multi-tenancy | Every business table has `TenantId int` (nullable only on `Users` for SystemAdmin). Enforced by EF global query filters (ADR 0005) |
+| Audit | `Created`, `CreatedBy`, `LastModified`, `LastModifiedBy` via `BaseAuditableEntity` + interceptor |
 | Required strings | `.IsRequired()` + `.HasMaxLength(n)` in `IEntityTypeConfiguration<T>` |
-| Money | `decimal(18,2)` (or `decimal(18,4)` for quantities / FX) — never `float` |
-| Currency | `char(3)` ISO 4217 |
-| Soft delete | Only if the feature spec says so; then `IsDeleted bit` + filtered index |
+| Money | Owned type → two columns: `Amount decimal(18,4)`, `Currency char(3)` (ADR 0004) |
+| Instrument | Owned type → `Name nvarchar(200)`, `Symbol nvarchar(50)` nullable |
+| Soft delete | Not used in MVP |
 | Identity tables | Leave ASP.NET Identity schema as-is |
-| Value objects | Prefer owned types (see `TodoList.Colour`) unless the VO is reused widely |
+| Value objects | Prefer EF owned types |
+| Delete behaviour | Documented per relationship (see §4). Default for aggregate children: Cascade |
 
 Each new entity needs a configuration class in `src/Infrastructure/Data/Configurations/`.
 
-## 4. Current schema (starter)
+## 4. Target schema (MVP)
 
-Plus the usual ASP.NET Identity tables (`AspNetUsers`, `AspNetRoles`, …).
-
-```mermaid
-erDiagram
-  TodoLists ||--o{ TodoItems : contains
-  TodoLists {
-    int Id PK
-    string Title
-    string Colour_Code
-    datetimeoffset Created
-    string CreatedBy
-    datetimeoffset LastModified
-    string LastModifiedBy
-  }
-  TodoItems {
-    int Id PK
-    int ListId FK
-    string Title
-    string Note
-    int Priority
-    bit Done
-    datetimeoffset Created
-    string CreatedBy
-    datetimeoffset LastModified
-    string LastModifiedBy
-  }
-```
-
-| Table | Configuration | Notes |
-| --- | --- | --- |
-| `TodoLists` | `TodoListConfiguration` | `Title` required, max 200; `Colour` owned |
-| `TodoItems` | `TodoItemConfiguration` | `Title` required, max 200; FK `ListId` |
-| Identity | convention | `ApplicationUser` has no extra columns yet |
-
-Seed (Development): administrator user + one "Tasks" list.
-
-## 5. Target schema (fill in)
-
-Example starting point for a wealth app. Delete tables you are not building. Add a row to the catalog **and** a mermaid fragment when a table is accepted.
+Derived directly from [domain-model.md](domain-model.md).
 
 ```mermaid
 erDiagram
-  AspNetUsers ||--o{ Accounts : owns
-  Accounts ||--o{ Holdings : holds
-  Accounts ||--o{ Transactions : posts
-  AspNetUsers ||--o{ Categories : owns
-  Categories ||--o{ Transactions : labels
+  Tenants ||--o{ Users : "has"
+  Users ||--o{ Users : "AdviserId"
+  Users ||--o{ Accounts : "CustomerId"
+  Accounts ||--o{ Holdings : "has"
+  Accounts ||--o{ Transactions : "has"
+  Holdings ||--o{ Transactions : "optional"
+
+  Tenants {
+    int Id PK
+    nvarchar Name
+    bit IsEnabled
+    datetimeoffset Created
+    nvarchar CreatedBy
+    datetimeoffset LastModified
+    nvarchar LastModifiedBy
+  }
+
+  Users {
+    int Id PK
+    int TenantId FK "nullable for SystemAdmin"
+    nvarchar Name
+    nvarchar Email
+    bit IsEnabled
+    int Role
+    int AdviserId FK "nullable"
+    nvarchar IdentityUserId "link to AspNetUsers"
+    datetimeoffset Created
+    nvarchar CreatedBy
+    datetimeoffset LastModified
+    nvarchar LastModifiedBy
+  }
 
   Accounts {
     int Id PK
-    nvarchar OwnerId FK
+    int TenantId FK
+    int CustomerId FK
     nvarchar Name
     int Type
-    decimal Balance
+    int Status
     char Currency
-    bit IsLiability
+    datetimeoffset Created
+    nvarchar CreatedBy
+    datetimeoffset LastModified
+    nvarchar LastModifiedBy
   }
+
   Holdings {
     int Id PK
+    int TenantId FK
     int AccountId FK
-    nvarchar Symbol
+    nvarchar Instrument_Name
+    nvarchar Instrument_Symbol
     decimal Quantity
-    decimal CurrentValue
-    char Currency
+    decimal CostBasis_Amount
+    char CostBasis_Currency
+    datetimeoffset Created
+    nvarchar CreatedBy
+    datetimeoffset LastModified
+    nvarchar LastModifiedBy
   }
+
   Transactions {
     int Id PK
+    int TenantId FK
     int AccountId FK
-    int CategoryId FK
+    int HoldingId FK "nullable"
     date BookedOn
-    decimal Amount
-    char Currency
-    nvarchar Payee
+    int Type
+    decimal Amount_Amount
+    char Amount_Currency
+    decimal Quantity "nullable"
     nvarchar Note
-  }
-  Categories {
-    int Id PK
-    nvarchar OwnerId FK
-    nvarchar Name
-    int Kind
+    datetimeoffset Created
+    nvarchar CreatedBy
+    datetimeoffset LastModified
+    nvarchar LastModifiedBy
   }
 ```
 
-### Table catalog
+### 4.1 Table catalog
 
-| Table | Aggregate | PK | FKs | Unique / indexes | Notes |
+| Table | Aggregate / Kind | PK | Important FKs | Indexes | Notes |
 | --- | --- | --- | --- | --- | --- |
-| | | | | | |
+| `Tenants` | Aggregate root | `Id` | — | Unique `Name` | Platform-level. No TenantId column. |
+| `Users` | Aggregate root | `Id` | `TenantId` → Tenants (nullable), `AdviserId` → Users (nullable) | `(TenantId, Role)`, `AdviserId`, unique `Email` (or unique per tenant) | All four roles. SystemAdmin has `TenantId = null`. |
+| `Accounts` | Aggregate root | `Id` | `TenantId` → Tenants, `CustomerId` → Users | `(TenantId, CustomerId)`, `(CustomerId)` | Currency fixed after insert. |
+| `Holdings` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts | `(TenantId, AccountId)`, `(AccountId)` | Owned Instrument + Money (CostBasis). |
+| `Transactions` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts, `HoldingId` → Holdings (nullable) | `(TenantId, AccountId, BookedOn)`, `(AccountId, Type)`, `(HoldingId)` | Append-only in MVP. |
 
-### Column template
+ASP.NET Identity tables (`AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`, …) remain unchanged. The business `Users` table links to Identity via `IdentityUserId` (nvarchar, matching Identity’s key) or by Email.
 
-Use this when specifying a new table in a feature spec or here.
+### 4.2 Column details
 
-| Column | Type | Null | Default | Notes |
-| --- | --- | --- | --- | --- |
-| Id | int identity | no | | PK |
-| OwnerId | nvarchar(450) | no | | index, Identity user id |
-| Created | datetimeoffset | no | interceptor | |
-| CreatedBy | nvarchar | yes | interceptor | |
-| LastModified | datetimeoffset | no | interceptor | |
-| LastModifiedBy | nvarchar | yes | interceptor | |
+#### Tenants
 
-## 6. Index and constraint checklist
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| Id | int identity | no | PK |
+| Name | nvarchar(200) | no | Unique |
+| IsEnabled | bit | no | Default 1 |
+| Created / CreatedBy / LastModified / LastModifiedBy | audit columns | | |
 
-For each user-owned table:
+#### Users
 
-- [ ] Composite or single index on `OwnerId` (every query is scoped)
-- [ ] Unique `(OwnerId, Name)` where names must not collide per user
-- [ ] FK `ON DELETE` behaviour written down (restrict vs cascade)
-- [ ] Check constraints for money sign / account type if the domain cannot be the only guard
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| Id | int identity | no | PK |
+| TenantId | int | yes | Null only for SystemAdmin. FK → Tenants |
+| Name | nvarchar(200) | no | |
+| Email | nvarchar(256) | no | Used for login when role allows it |
+| IsEnabled | bit | no | Default 1 |
+| Role | int | no | Enum: 0=SystemAdmin, 1=TenantAdmin, 2=Adviser, 3=Customer |
+| AdviserId | int | yes | Required when Role=Customer. FK → Users |
+| IdentityUserId | nvarchar(450) | yes | Link to AspNetUsers.Id. Null for pure Customer rows in MVP if no Identity user is created |
+| Created / CreatedBy / LastModified / LastModifiedBy | audit columns | | |
 
-## 7. Seed and reference data
+Recommended check constraints:
 
-| Data | When | Where |
+- SystemAdmin ⇒ `TenantId IS NULL AND AdviserId IS NULL`
+- Other roles ⇒ `TenantId IS NOT NULL`
+- Customer ⇒ `AdviserId IS NOT NULL`
+
+#### Accounts
+
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| Id | int identity | no | PK |
+| TenantId | int | no | FK → Tenants. Copied from Customer |
+| CustomerId | int | no | FK → Users (must be Role=Customer) |
+| Name | nvarchar(200) | no | |
+| Type | int | no | AccountType enum |
+| Status | int | no | AccountStatus enum (Active / Closed) |
+| Currency | char(3) | no | ISO 4217, immutable after insert |
+| Created / CreatedBy / LastModified / LastModifiedBy | audit columns | | |
+
+#### Holdings
+
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| Id | int identity | no | PK |
+| TenantId | int | no | FK → Tenants |
+| AccountId | int | no | FK → Accounts. ON DELETE CASCADE |
+| Instrument_Name | nvarchar(200) | no | Owned |
+| Instrument_Symbol | nvarchar(50) | yes | Owned |
+| Quantity | decimal(18,8) | no | ≥ 0 |
+| CostBasis_Amount | decimal(18,4) | no | Owned Money |
+| CostBasis_Currency | char(3) | no | Must equal Account.Currency |
+| Created / CreatedBy / LastModified / LastModifiedBy | audit columns | | |
+
+#### Transactions
+
+| Column | Type | Null | Notes |
+| --- | --- | --- | --- |
+| Id | int identity | no | PK |
+| TenantId | int | no | FK → Tenants |
+| AccountId | int | no | FK → Accounts. ON DELETE CASCADE |
+| HoldingId | int | yes | Required for Buy/Sell. FK → Holdings. ON DELETE NO ACTION (or RESTRICT) |
+| BookedOn | date | no | |
+| Type | int | no | TransactionType enum |
+| Amount_Amount | decimal(18,4) | no | Owned Money, ≠ 0 |
+| Amount_Currency | char(3) | no | Must equal Account.Currency |
+| Quantity | decimal(18,8) | yes | Required for Buy/Sell |
+| Note | nvarchar(1000) | yes | |
+| Created / CreatedBy / LastModified / LastModifiedBy | audit columns | | |
+
+### 4.3 Delete behaviour
+
+| Relationship | Behaviour | Reason |
 | --- | --- | --- |
-| `Administrator` role | Development seed today | `ApplicationDbContextInitialiser` |
-| `administrator@localhost` | Development seed today | same |
-| Default categories | _TBD_ | |
-| Currency list | _TBD — or just free-form ISO codes_ | |
+| Account → Holdings | CASCADE | Holdings belong exclusively to the Account aggregate |
+| Account → Transactions | CASCADE | Transactions belong exclusively to the Account aggregate |
+| Holding → Transactions (HoldingId) | RESTRICT / NO ACTION | Keep historical transactions even if a Holding is later removed or zeroed |
+| User (Adviser) → User (Customer) via AdviserId | RESTRICT | Force reassignment before Adviser deletion |
+| Tenant → Users / Accounts / … | RESTRICT | Explicit disable preferred over cascade delete of a whole tenant |
 
-Do not seed another user's financial data.
+### 4.4 Indexes (summary)
 
-## 8. `IApplicationDbContext`
+| Table | Index | Purpose |
+| --- | --- | --- |
+| Users | `(TenantId, Role)` | List Advisers / Customers inside a tenant |
+| Users | `AdviserId` | Find Customers of an Adviser |
+| Users | unique `Email` (or `(TenantId, Email)`) | Login / uniqueness |
+| Accounts | `(TenantId, CustomerId)` | List accounts of a Customer |
+| Holdings | `(TenantId, AccountId)` | Load holdings with the Account aggregate |
+| Transactions | `(TenantId, AccountId, BookedOn)` | Date-range queries and recent activity |
+| Transactions | `(AccountId, Type)` | Filter by transaction type |
+| Transactions | `HoldingId` | Optional lookups |
 
-Keep the interface in Application in sync with the context:
+All `TenantId` columns should also be covered by the composite indexes above so that global query filters remain efficient.
+
+## 5. Mapping notes (EF Core)
+
+- **Money** and **Instrument** are configured as owned types (`OwnsOne`).
+- `UserRole`, `AccountType`, `AccountStatus`, `TransactionType` are stored as `int` (or string if preferred later).
+- Global query filters on `TenantId` are applied in `ApplicationDbContext` for `Users` (with care for SystemAdmin), `Accounts`, `Holdings`, `Transactions`.
+- `Holdings` and `Transactions` do **not** need their own `DbSet<>` on `IApplicationDbContext` if they are only accessed through the Account aggregate for writes. They may still be exposed for efficient read-side queries.
+- `IdentityUserId` on `Users` is the bridge to `AspNetUsers`. Creating a login-capable User (SystemAdmin / TenantAdmin / Adviser) also creates the corresponding Identity user in Infrastructure.
+
+## 6. Seed and reference data
+
+| Data | When | Notes |
+| --- | --- | --- |
+| SystemAdmin user + Identity account | Development seed | Platform operator |
+| One sample Tenant | Development seed | |
+| TenantAdmin + Adviser for the sample Tenant | Development seed | |
+| A few Customers under the Adviser | Development seed | No login |
+| Optional sample Accounts / Holdings / Transactions | Development seed | For UI demos |
+
+Do not seed another tenant’s real financial data.  
+Reference data such as currency codes is not seeded in MVP (Currency is stored as free-form ISO 4217 `char(3)`).
+
+## 7. `IApplicationDbContext`
+
+Keep the Application-layer interface in sync:
 
 ```csharp
-// src/Application/Common/Interfaces/IApplicationDbContext.cs
-DbSet<T> Xs { get; }
+DbSet<Tenant> Tenants { get; }
+DbSet<User> Users { get; }
+DbSet<Account> Accounts { get; }
+// Holdings / Transactions may be omitted if only loaded via Account
 Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 ```
 
-Add a `DbSet<>` for each new aggregate root (not necessarily for every child entity).
+## 8. Open questions
 
-## 9. Open questions
+- Migrations: introduce with the first real aggregate, or earlier?
+- Email uniqueness: global or per-tenant?
+- Should `IdentityUserId` be required for Advisers / TenantAdmins, or can it be filled asynchronously?
+- Do we need a separate `Currencies` lookup table, or is free-form ISO 4217 code enough for MVP?
+- Soft-delete vs hard-delete for Customers and Accounts in later phases?
 
-- Migrations starting in Phase 0 or with the first real aggregate?
-- Schema name (`dbo` vs `wealth`, `identity`)?
-- Snapshot table for net-worth history, or compute on read?
-- How to store attachments / statement files if import lands?
-
-## 10. Changelog
+## 9. Changelog
 
 | Date | Change |
 | --- | --- |
+| 2026-08-19 | Removed obsolete Todo starter schema (§4). Renumbered sections. Clarified that currency reference data is not seeded in MVP. |
+| 2026-08-19 | Replaced placeholder target schema with full MVP model aligned to domain-model.md (single User table with four roles, TenantId on all business tables, owned Money/Instrument, indexes and delete behaviour). |
 | 2026-08-16 | Template created; starter Todo + Identity schema documented |
