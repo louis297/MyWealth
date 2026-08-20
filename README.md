@@ -4,7 +4,14 @@ The project was generated using the [Clean.Architecture.Solution.Template](https
 
 ## Documentation
 
-Shared design docs live in [`docs/`](docs/README.md) (function plan, architecture, domain model, database, API, feature specs, ADRs). Personal working notes go in [`local_docs/`](local_docs/README.md).
+- **Shared design docs** live in `docs/`  
+  (function plan, architecture, domain model, database, API, feature specs, ADRs).  
+  These are the source of truth. Prefer them when making decisions or generating code.
+
+- **Personal working notes** go in `local_docs/`  
+  (ideas, research-notes, scratch, session-log).  
+  These are temporary, informal, and often outdated.  
+  Do **not** treat them as authoritative. Only read them when the user explicitly asks or the current task clearly requires it.
 
 ## Build
 
