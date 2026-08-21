@@ -1,6 +1,6 @@
 ---
 title: "Identity & Auth"
-status: accepted
+status: draft
 owner: ""
 last_updated: 2026-08-21
 related:
@@ -28,7 +28,7 @@ Any login-capable user (SystemAdmin, TenantAdmin, Adviser) can sign in with emai
 - `GET /users/me` — current user profile
 - `PUT /users/me` — update non-password profile fields (display name and any future non-sensitive fields)
 - `PUT /users/me/password` — change password (requires current password)
-- Role claims and TenantId claim inside the JWT
+- Role claim and TenantId claim inside the JWT
 - Explicit rejection of Customer-role login (403)
 - `IUser` / `CurrentUser` abstraction used by the rest of the application
 
@@ -58,55 +58,54 @@ Any login-capable user (SystemAdmin, TenantAdmin, Adviser) can sign in with emai
 | R2 | JWT must contain at least: user id, email, role, tenantId (null for SystemAdmin). |
 | R3 | `PUT /users/me` may change only non-password profile fields. Email, Role, TenantId and IsEnabled are immutable through this endpoint. |
 | R4 | `PUT /users/me/password` requires the current password and a new password that satisfies Identity password rules. |
-| R5 | Logout invalidates the current session / token according to the Identity configuration used. |
+| R5 | Logout does not blacklist the JWT. Tokens are short-lived; the client discards them. |
 | R6 | All endpoints except login require a valid JWT. |
 
 ## 5. Domain
 
 | Type | Kind | Notes |
 | --- | --- | --- |
-| ApplicationUser | Infrastructure entity (Identity) | Lives in Infrastructure. Extended with Role, TenantId, DisplayName, IsEnabled, AdviserId, etc. Domain only ever sees a string UserId. |
-| — | — | No new Domain aggregate is introduced by this feature. |
+| ApplicationUser | Infrastructure entity (Identity) | Lives in Infrastructure. Extended with **Role** (property/column), TenantId, DisplayName, IsEnabled, AdviserId. Domain only ever sees a string UserId. |
+| — | — | No new Domain aggregate is introduced by this feature. A future Domain `User` (business table) may appear with the tenants/advisers slices. |
 
 Invariants:
 
-- A user with Role = Customer must never be issued a valid authentication token.
+- A user with `Role = Customer` must never be issued a valid authentication token.
 - Profile updates never change Role, TenantId, Email or IsEnabled.
 
 Domain events:
 
 - None required for MVP.
 
-Update [domain-model.md](../domain-model.md) only if new terminology appears; the existing language already covers User / roles / “Customer cannot authenticate”.
+**Role storage decision (Option B):**
+
+- `Role` is a **property/column on `ApplicationUser`**, not an ASP.NET Identity Role (`AspNetRoles` / `AspNetUserRoles`).
+- Preferred type: string or a small enum (`UserRole`) mapped to a column.
+- JWT Role claim is read directly from `ApplicationUser.Role`.
+- This keeps the model simple for MVP and aligns with the domain language (“all four roles live in the same User table”). Using Identity Roles would introduce a parallel role system that the next features would have to reconcile.
+
+Update [domain-model.md](../domain-model.md) and [database-design.md](../database-design.md) to match.
 
 ## 6. Database
 
 | Table | Change | Indexes / FKs |
 | --- | --- | --- |
-| AspNetUsers (ApplicationUser) | Ensure columns exist: DisplayName (or FullName), Role, TenantId, IsEnabled, AdviserId | Existing Identity indexes + any needed for TenantId / Role |
+| AspNetUsers (ApplicationUser) | Columns: `DisplayName`, **`Role`**, `TenantId`, `IsEnabled`, `AdviserId` | Index on `(TenantId, Role)` if useful |
 
-Migration name: (none specific if the columns already exist from the Identity + multi-tenancy setup; otherwise a small additive migration)
+- Do **not** rely on `AspNetRoles` / `AspNetUserRoles` for the four business roles.
+- Migration must add the `Role` column if it does not exist.
 
-Update [database-design.md](../database-design.md) if any new column is introduced.
+Update [database-design.md](../database-design.md) in the same change.
 
 ## 7. Application use cases
 
 | Kind | Name | Returns | Validator highlights |
 | --- | --- | --- | --- |
-| Command | LoginCommand | LoginResultVm (token + basic claims) | Email required, Password required; after Identity succeeds, reject if Role == Customer |
+| Command | LoginCommand | LoginResultVm (token + basic claims) | Email required, Password required; after Identity succeeds, reject if `Role == Customer` |
 | Command | LogoutCommand | — | — |
 | Query | GetCurrentUserQuery | CurrentUserVm | — |
 | Command | UpdateCurrentUserCommand | — | DisplayName (or other allowed fields) required / length rules |
 | Command | ChangePasswordCommand | — | CurrentPassword required, NewPassword required + Identity strength rules |
-
-Scaffold from `src/Application` (adjust names to match existing conventions):
-
-```bash
-dotnet new ca-usecase -n Login -fn IdentityAuth -ut command -rt LoginResultVm
-dotnet new ca-usecase -n GetCurrentUser -fn IdentityAuth -ut query -rt CurrentUserVm
-dotnet new ca-usecase -n UpdateCurrentUser -fn IdentityAuth -ut command -rt unit
-dotnet new ca-usecase -n ChangePassword -fn IdentityAuth -ut command -rt unit
-```
 
 `IUser` / `CurrentUser` implementation lives under `src/Web` (or Shared) and is injected into Application behaviours / handlers that need the caller identity.
 
@@ -123,10 +122,10 @@ dotnet new ca-usecase -n ChangePassword -fn IdentityAuth -ut command -rt unit
 Notes:
 
 - Login is deliberately **not** under `/users` so that the auth surface stays distinct from the current-user resource.
-- This feature **introduces** `/users/me`, reversing the earlier “no /me” decision in api-design.md. That document must be updated in the same change set.
-- Customer login failure is **403 Forbidden** (not 401), because the credentials may be valid but the role is not allowed to authenticate.
+- This feature introduces `/users/me`, reversing the earlier “no /me” decision.
+- Customer login failure is **403 Forbidden** (not 401).
 
-Update [api-design.md](../api-design.md) in the same change.
+See also [api-design.md](../api-design.md).
 
 ## 9. UI
 
@@ -142,22 +141,26 @@ None — API only for this slice. Adviser Portal login / profile / change-passwo
 
 ## 11. Rollout
 
-- [x] Feature spec accepted
-- [x] Confirm ApplicationUser columns (DisplayName, TenantId, IsEnabled, AdviserId). Role is an ASP.NET Identity role, not a column.
-- [x] Login / Logout / GetCurrentUser / UpdateCurrentUser / ChangePassword handlers + validators
-- [x] Endpoints under `/auth` and `/users/me`
-- [x] `IUser` / `CurrentUser` wired
-- [x] Tests
-- [x] Parent docs updated (especially api-design.md — remove “no /me”, document the new routes and the 403 Customer rule)
+- [ ] Feature spec accepted (with Option B: Role as column)
+- [ ] `ApplicationUser` has `Role` property/column (not Identity Roles)
+- [ ] Login reads Role from the property and rejects Customer with 403
+- [ ] JWT Role claim comes from `ApplicationUser.Role`
+- [ ] Login / Logout / GetCurrentUser / UpdateCurrentUser / ChangePassword handlers + validators
+- [ ] Endpoints under `/auth` and `/users/me`
+- [ ] `IUser` / `CurrentUser` wired
+- [ ] Tests
+- [ ] Parent docs updated (domain-model, database-design, api-design)
+
+**Note on current implementation:** The first agentic coding pass used ASP.NET Identity Roles. That must be changed to a Role column/property on `ApplicationUser` before this feature is considered complete. The change is expected to land together with (or just before) the next feature that creates users.
 
 ## 12. Open questions
 
-- Display name on ApplicationUser is **DisplayName**. Domain `User.Name` still lands with the tenants / advisers slices.
-- Logout does **not** blacklist the JWT. Tokens are short-lived (8 hours); the client discards them. `POST /auth/logout` returns 204.
+- Exact CLR type for Role on ApplicationUser (`string` vs `UserRole` enum) — prefer the same type that domain-model will use.
+- Whether a future Domain `User` table will own Role and ApplicationUser only mirrors it, or ApplicationUser remains the source of truth for auth.
 
 ## 13. Changelog
 
 | Date | Change |
 | --- | --- |
-| 2026-08-21 | Implemented: JWT Bearer, custom `/auth` + `/users/me`, DisplayName, no token blacklist, UI deferred. Status accepted. |
-| 2026-08-21 | Created from discussion. Custom `/auth` routes, `/users/me` introduced, Customer login → 403, profile vs password split. |
+| 2026-08-21 | **Option B locked in**: Role is a property/column on ApplicationUser, not an ASP.NET Identity Role. Current implementation that used Identity Roles is marked for change. |
+| 2026-08-21 | Created from discussion. Custom `/auth` routes, `/users/me` introduced, Customer login → 403, profile vs password split. UI deferred. |

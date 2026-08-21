@@ -165,18 +165,7 @@ erDiagram
 | `Holdings` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts | `(TenantId, AccountId)`, `(AccountId)` | Owned Instrument + Money (CostBasis). |
 | `Transactions` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts, `HoldingId` → Holdings (nullable) | `(TenantId, AccountId, BookedOn)`, `(AccountId, Type)`, `(HoldingId)` | Append-only in MVP. |
 
-ASP.NET Identity tables (`AspNetUsers`, `AspNetRoles`, `AspNetUserRoles`, …) remain. The business `Users` table (not yet created) will link to Identity via `IdentityUserId` (nvarchar, matching Identity’s key) or by Email.
-
-Until the domain `Users` table lands, login-capable accounts live only on `ApplicationUser` (`AspNetUsers`) with these extra columns:
-
-| Column | Type | Null | Notes |
-| --- | --- | --- | --- |
-| DisplayName | nvarchar(200) | no | Profile name. Domain `Users.Name` comes later |
-| TenantId | int | yes | No FK yet. Null for SystemAdmin |
-| IsEnabled | bit | no | Default 1. Disabled users cannot log in (401) |
-| AdviserId | int | yes | Reserved for Customer Identity users |
-
-Role is **not** a column on `AspNetUsers`. It is an ASP.NET Identity role (`AspNetRoles` / `AspNetUserRoles`): `SystemAdmin`, `TenantAdmin`, `Adviser`, `Customer`.
+ASP.NET Identity tables: `AspNetUsers` is extended via `ApplicationUser` with business columns (`DisplayName`, **`Role`**, `TenantId`, `IsEnabled`, `AdviserId`). **`AspNetRoles` / `AspNetUserRoles` are not used for the four business roles** (Option B, locked 2026-08-21). Role lives as a column on `ApplicationUser` and (when the Domain `Users` table is fully introduced) on `Users.Role`. The business `Users` table links to Identity via `IdentityUserId` (nvarchar, matching Identity’s key) or by Email.
 
 ### 4.2 Column details
 
@@ -322,7 +311,7 @@ Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
 | Date | Change |
 | --- | --- |
-| 2026-08-21 | Documented ApplicationUser extra columns (DisplayName, TenantId, IsEnabled, AdviserId) used by identity-auth until the domain Users table exists. |
+| 2026-08-21 | Locked Role storage Option B: Role is a column on ApplicationUser; AspNetRoles/AspNetUserRoles are not used for the four business roles. |
 | 2026-08-19 | Removed obsolete Todo starter schema (§4). Renumbered sections. Clarified that currency reference data is not seeded in MVP. |
 | 2026-08-19 | Replaced placeholder target schema with full MVP model aligned to domain-model.md (single User table with four roles, TenantId on all business tables, owned Money/Instrument, indexes and delete behaviour). |
 | 2026-08-16 | Template created; starter Todo + Identity schema documented |

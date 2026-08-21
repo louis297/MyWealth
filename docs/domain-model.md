@@ -48,7 +48,7 @@ These match the current Domain project plus accepted ADRs. Change them only with
 
 - Entities inherit `BaseEntity` (`int Id` + domain event list) or `BaseAuditableEntity` (adds created/modified). Primary key is a database-generated `int` ([ADR 0007](adr/0007-baseentity-primary-key-int.md)).
 - Every tenant-scoped business entity carries a `TenantId`. Isolation is enforced by EF global query filters and application checks ([ADR 0005](adr/0005-shared-database-tenantid-isolation.md)). System Admin is the only actor with no tenant binding.
-- Value objects inherit `ValueObject` and compare by components (`Money` next).
+- Value objects inherit `ValueObject` and compare by components (see `Colour` today; `Money` next).
 - Monetary fields are a `Money` value object: `decimal` amount + currency code. Persistence precision is a database concern (`decimal(18,4)` or higher per [ADR 0004](adr/0004-money-as-decimal-with-currency.md)).
 - Domain events inherit `BaseEvent` and are raised on the entity, dispatched by `DispatchDomainEventsInterceptor`.
 - Domain has **no** EF, ASP.NET, or MediatR types.
@@ -58,15 +58,52 @@ These match the current Domain project plus accepted ADRs. Change them only with
 - **Customer cannot authenticate in MVP.** Login for `Role = Customer` is deliberately disabled at the Identity / Application layer. This keeps the data model ready for a future Customer portal without requiring a schema change.
 - Financial writes that must stay consistent (post a Transaction and adjust the related Holding) stay inside the **Account** aggregate.
 
-## 3. Current model
+## 3. Current model (starter — replace)
 
-The Todo / WeatherForecast sample has been removed. Domain currently holds shared primitives (`BaseEntity`, `BaseAuditableEntity`, `ValueObject`, `BaseEvent`) and role constants. The first business aggregate (`Tenant` / `User`) lands with the tenants and advisers slices.
+Still the Clean Architecture sample. Remove these types when the first real aggregate lands.
+
+```mermaid
+classDiagram
+  class BaseAuditableEntity {
+    int Id
+    DateTimeOffset Created
+    string CreatedBy
+    DateTimeOffset LastModified
+    string LastModifiedBy
+  }
+  class TodoList {
+    string Title
+    Colour Colour
+    Items
+  }
+  class TodoItem {
+    int ListId
+    string Title
+    string Note
+    PriorityLevel Priority
+    bool Done
+  }
+  class Colour {
+    string Code
+  }
+  BaseAuditableEntity <|-- TodoList
+  BaseAuditableEntity <|-- TodoItem
+  TodoList "1" --> "*" TodoItem : Items
+  TodoList --> Colour
+```
 
 | Type | Kind | File |
 | --- | --- | --- |
-| `Roles.SystemAdmin` / `TenantAdmin` / `Adviser` / `Customer` | Constant | `src/Domain/Constants/Roles.cs` |
+| `TodoList` | Aggregate root | `src/Domain/Entities/TodoList.cs` |
+| `TodoItem` | Entity | `src/Domain/Entities/TodoItem.cs` |
+| `Colour` | Value object | `src/Domain/ValueObjects/Colour.cs` |
+| `PriorityLevel` | Enum | `src/Domain/Enums/PriorityLevel.cs` |
+| `TodoItemCompletedEvent` | Domain event | `src/Domain/Events/TodoItemCompletedEvent.cs` |
+| `Roles.Administrator` | Constant | `src/Domain/Constants/Roles.cs` |
 
-Identity login lives on `ApplicationUser` in Infrastructure. Domain `User` is not introduced by identity-auth.
+`TodoItem.Done` setter raises `TodoItemCompletedEvent` when flipping to true. Handler: `LogTodoItemCompleted`.
+
+Replace `Roles.Administrator` with the real role constants in section 5 when Identity is wired to the real model.
 
 ## 4. Target model (MVP)
 
@@ -401,7 +438,7 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
 
 ### Roles (constants)
 
-Role constants in code:
+Replace the starter `Roles.Administrator` with:
 
 | Constant | Who | Login in MVP |
 | --- | --- | --- |
@@ -421,13 +458,15 @@ Role constants in code:
 
 | Concept | Lives in | Exposed to Domain as |
 | --- | --- | --- |
-| Login, password, email-as-credential, JWT | `Infrastructure/Identity/ApplicationUser` + Identity endpoints ([ADR 0006](adr/0006-email-password-jwt-authentication.md)) | not referenced directly |
+| Login, password, email-as-credential, JWT | `Infrastructure/Identity/ApplicationUser` + custom `/auth` endpoints ([ADR 0006](adr/0006-email-password-jwt-authentication.md), [identity-auth](features/identity-auth.md)) | not referenced directly |
 | "Who is acting" | `IUser` (`src/Application`); tenant from JWT claim or header ([ADR 0005](adr/0005-shared-database-tenantid-isolation.md)) | `UserId`, `TenantId`, `CreatedBy` / `LastModifiedBy` |
-| Login-capable role | Identity role + `[Authorize(Roles = …)]` | `Roles.*` constants |
-| Person in the firm (any of the four roles) | Domain `User` | `User.Id`, `User.Role`, `User.AdviserId` |
-| Customer login | Disabled in MVP by Application / Identity policy | Will be enabled later for Customer portal without changing the domain model |
+| Login-capable role | **`ApplicationUser.Role` property/column** (Option B). Not ASP.NET Identity Roles (`AspNetRoles`). JWT Role claim is read from this property. | `Roles.*` constants / `UserRole` enum |
+| Person in the firm (any of the four roles) | Domain `User` (when introduced) or currently mirrored on `ApplicationUser` | `User.Id`, `User.Role`, `User.AdviserId` |
+| Customer login | Disabled in MVP by Application / Identity policy (check `ApplicationUser.Role == Customer` → 403) | Will be enabled later for Customer portal without changing the domain model |
 | Authorization / data scope | `[Authorize]` + handlers that filter by tenant and (for Advisers) `AdviserId` | not a domain service |
-| Profile name / password change | Identity / Application | not a domain aggregate |
+| Profile name / password change | Identity / Application (`/users/me`, `/users/me/password`) | not a domain aggregate |
+
+**Role storage (locked 2026-08-21):** Role is a column on `ApplicationUser`, not an entry in `AspNetRoles` / `AspNetUserRoles`. This matches the domain language (“all four roles live in the same User table”) and avoids a parallel role system. A future Domain `Users` table will carry the same `Role` value; `ApplicationUser` remains the source of truth for authentication claims until that table is fully wired.
 
 Do not put `ApplicationUser` navigation properties on domain entities. The domain `User` is linked to Identity by a string `UserId` (or by matching Email) when needed.
 
@@ -442,7 +481,6 @@ Decided by existing docs (do not re-open without an ADR or a function-plan chang
 - Customer cannot log in during MVP (login policy is disabled for `Role = Customer`)
 - Holdings live inside the Account aggregate so a post can adjust quantity and cost basis in one consistency boundary
 - Custom transaction categories and net-worth snapshots are out of MVP
-- Order / Fill separation is deferred. Transaction remains the only recorded money movement. An optional OrderId can be added later without breaking existing data.
 
 Still open (resolve in a feature spec or a follow-up edit of this file):
 
@@ -457,7 +495,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
-| 2026-08-21 | Starter Todo model removed. Role constants replaced with SystemAdmin / TenantAdmin / Adviser / Customer. |
+| 2026-08-21 | Locked Role storage Option B: Role is a property/column on `ApplicationUser`, not ASP.NET Identity Roles. Updated Identity vs domain section. |
 | 2026-08-19 | Finalised single-`User` design with four roles. Customer lives in the same table but authentication is explicitly disabled in MVP to keep the model ready for a future Customer portal. Updated Language, Modelling rules, 4.1, Type catalog and Identity section for consistency. |
 | 2026-08-18 | Replaced the placeholder target model with the MVP model from the function plan, glossary, and ADRs 0004–0007 |
 | 2026-08-16 | Template created; starter Todo model documented |
