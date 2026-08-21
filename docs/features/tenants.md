@@ -1,6 +1,6 @@
 ---
 title: "Tenants"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-22
 related:
@@ -91,7 +91,7 @@ Update [domain-model.md](../domain-model.md) in the same change if any clarifica
 
 | Table | Change | Indexes / FKs |
 | --- | --- | --- |
-| Tenants | add (already designed) | Unique index on `Name` (case-insensitive collation or computed lower-case column) |
+| Tenants | add (already designed) | Unique index on `Name` with collation `SQL_Latin1_General_CP1_CI_AS` |
 
 Columns already specified in [database-design.md](../database-design.md):
 
@@ -111,7 +111,7 @@ Update [database-design.md](../database-design.md) only if the unique-index appr
 | Command | CreateTenant | int (new Id) | Name required, unique (case-insensitive) |
 | Command | UpdateTenant | — | Name required if supplied, unique; IsEnabled optional |
 | Query | GetTenants | paginated list | page, pageSize, isEnabled?, search? |
-| Query | GetTenantById | TenantVm or null | |
+| Query | GetTenantById | TenantVm (404 if missing) | |
 
 Scaffold from `src/Application`:
 
@@ -154,13 +154,13 @@ None — API only (SystemAdmin management UI is out of MVP Adviser Portal scope)
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] Domain `Tenant` entity
-- [ ] EF configuration + unique index (case-insensitive)
-- [ ] Commands / queries / validators
-- [ ] Endpoints under `/tenants`
-- [ ] Tests
-- [ ] Parent docs updated (model, DB, API, function plan)
+- [x] Feature spec accepted
+- [x] Domain `Tenant` entity
+- [x] EF configuration + unique index (case-insensitive)
+- [x] Commands / queries / validators
+- [x] Endpoints under `/tenants`
+- [x] Tests
+- [x] Parent docs updated (model, DB, API, function plan)
 
 ## 12. Open questions
 
@@ -170,4 +170,5 @@ None — API only (SystemAdmin management UI is out of MVP Adviser Portal scope)
 
 | Date | Change |
 | --- | --- |
+| 2026-08-22 | Implemented. Unique Name uses CI collation + unique index. EnsureCreated retained (no migrations). No ApplicationUser.TenantId FK. |
 | 2026-08-22 | Created. Decisions locked: no user creation on Tenant create; Name unique case-insensitive; SystemAdmin visibility unchanged by IsEnabled; list supports pagination + IsEnabled filter + Id/Name search (pattern to be reused). |

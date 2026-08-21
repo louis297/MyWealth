@@ -2,7 +2,7 @@
 title: Database design
 status: review
 owner: ""
-last_updated: 2026-08-19
+last_updated: 2026-08-22
 related:
   - domain-model.md
   - architecture.md
@@ -159,7 +159,7 @@ erDiagram
 
 | Table | Aggregate / Kind | PK | Important FKs | Indexes | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `Tenants` | Aggregate root | `Id` | — | Unique `Name` | Platform-level. No TenantId column. |
+| `Tenants` | Aggregate root | `Id` | — | Unique `Name` (CI collation `SQL_Latin1_General_CP1_CI_AS`) | Platform-level. No TenantId column. |
 | `Users` | Aggregate root | `Id` | `TenantId` → Tenants (nullable), `AdviserId` → Users (nullable) | `(TenantId, Role)`, `AdviserId`, unique `Email` (or unique per tenant) | All four roles. SystemAdmin has `TenantId = null`. |
 | `Accounts` | Aggregate root | `Id` | `TenantId` → Tenants, `CustomerId` → Users | `(TenantId, CustomerId)`, `(CustomerId)` | Currency fixed after insert. |
 | `Holdings` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts | `(TenantId, AccountId)`, `(AccountId)` | Owned Instrument + Money (CostBasis). |
@@ -174,7 +174,7 @@ ASP.NET Identity tables: `AspNetUsers` is extended via `ApplicationUser` with bu
 | Column | Type | Null | Notes |
 | --- | --- | --- | --- |
 | Id | int identity | no | PK |
-| Name | nvarchar(200) | no | Unique |
+| Name | nvarchar(200) | no | Unique, collation `SQL_Latin1_General_CP1_CI_AS` |
 | IsEnabled | bit | no | Default 1 |
 | Created / CreatedBy / LastModified / LastModifiedBy | audit columns | | |
 
@@ -278,8 +278,8 @@ All `TenantId` columns should also be covered by the composite indexes above so 
 
 | Data | When | Notes |
 | --- | --- | --- |
+| One sample Tenant | Development seed | Created first so seeded TenantAdmin / Adviser / Customer can store its `Id` on `ApplicationUser.TenantId` (no FK in this slice) |
 | SystemAdmin user + Identity account | Development seed | Platform operator |
-| One sample Tenant | Development seed | |
 | TenantAdmin + Adviser for the sample Tenant | Development seed | |
 | A few Customers under the Adviser | Development seed | No login |
 | Optional sample Accounts / Holdings / Transactions | Development seed | For UI demos |
@@ -311,6 +311,7 @@ Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
 | Date | Change |
 | --- | --- |
+| 2026-08-22 | Tenants table shipped: unique Name via CI collation + unique index. Sample Tenant is seeded before Identity users. Migrations still deferred (`EnsureCreated`). |
 | 2026-08-21 | Locked Role storage Option B: Role is a column on ApplicationUser; AspNetRoles/AspNetUserRoles are not used for the four business roles. |
 | 2026-08-19 | Removed obsolete Todo starter schema (§4). Renumbered sections. Clarified that currency reference data is not seeded in MVP. |
 | 2026-08-19 | Replaced placeholder target schema with full MVP model aligned to domain-model.md (single User table with four roles, TenantId on all business tables, owned Money/Instrument, indexes and delete behaviour). |

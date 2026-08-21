@@ -2,7 +2,7 @@
 title: API design
 status: draft
 owner: ""
-last_updated: 2026-08-21
+last_updated: 2026-08-22
 related:
   - architecture.md
   - function-plan.md
@@ -10,6 +10,7 @@ related:
   - database-design.md
   - glossary.md
   - features/identity-auth.md
+  - features/tenants.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
   - adr/0004-money-as-decimal-with-currency.md
   - adr/0005-shared-database-tenantid-isolation.md
@@ -141,12 +142,38 @@ See feature spec: [identity-auth](features/identity-auth.md).
 
 ### 5.2 Tenants (SystemAdmin only)
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET | `/tenants` | Paginated list |
-| GET | `/tenants/{id}` | Detail |
-| POST | `/tenants` | Create (Name required and unique) |
-| PUT | `/tenants/{id}` | Rename or enable/disable |
+| Method | Route | Auth | Success | Errors | Description |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/tenants` | SystemAdmin | 200 + paginated list | 400, 401, 403 | List with pagination, `isEnabled` filter, `search` (Id or Name) |
+| GET | `/tenants/{id}` | SystemAdmin | 200 + TenantVm | 401, 403, 404 | Single Tenant |
+| POST | `/tenants` | SystemAdmin | 201 + `{ "id": n }` | 400, 401, 403 | Create. Does not create a user. |
+| PUT | `/tenants/{id}` | SystemAdmin | 204 | 400, 401, 403, 404 | Update Name and/or IsEnabled. Route `{id}` must match body `id`. |
+
+Query parameters for list (reuse this shape for Advisers / Customers / Accounts):
+
+- `page` (1-based, default 1, min 1)
+- `pageSize` (default 20, min 1, max 100)
+- `isEnabled` (optional bool)
+- `search` (optional string — matches Id exactly or Name contains, case-insensitive)
+
+`TenantVm`: `{ "id": 1, "name": "Acme", "isEnabled": true }`
+
+Paginated list:
+
+```json
+{
+  "items": [{ "id": 1, "name": "Acme", "isEnabled": true }],
+  "pageNumber": 1,
+  "totalPages": 1,
+  "totalCount": 1,
+  "hasPreviousPage": false,
+  "hasNextPage": false
+}
+```
+
+PUT is partial: omitted `name` / `isEnabled` stay unchanged. Supplying neither is 400. Disabled tenants remain visible to SystemAdmin.
+
+See feature spec: [tenants](features/tenants.md).
 
 ### 5.3 Advisers (TenantAdmin)
 
@@ -297,6 +324,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-22 | Tenants slice: `/tenants` CRUD for SystemAdmin, pagination shape, TenantVm, partial PUT. Linked to tenants feature spec. |
 | 2026-08-21 | Auth surface finalised: custom `/auth` routes, introduced `/users/me` + password endpoint, Customer login → 403. Reversed earlier “no /me” decision. Linked to identity-auth feature spec. |
 | 2026-08-20 | Full MVP design written from function-plan, domain-model, database-design and confirmed discussion points (soft-disable, nested holdings, SystemAdmin Option A, irreversible Account close, etc.) |
 | 2026-08-16 | Template created; starter endpoint groups listed |

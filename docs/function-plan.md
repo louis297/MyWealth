@@ -2,7 +2,7 @@
 
 **Version**: v0.1  
 **Status**: Draft  
-**Last Updated**: 2026-08-18  
+**Last Updated**: 2026-08-22  
 
 ---
 
@@ -42,7 +42,17 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 ---
 
-### 3.2 Tenant User Management
+### 3.2 Tenant Management
+
+| Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
+|----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
+| Tenant List                | Paginated list with IsEnabled filter and Id/Name search | API only (`/tenants`) — no MVP UI | System Admin                        |
+| Create Tenant              | Create a firm. Does not create a TenantAdmin    | API only                         | System Admin                        |
+| Edit Tenant                | Rename or enable/disable                         | API only                         | System Admin                        |
+
+---
+
+### 3.3 Tenant User Management
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
@@ -53,7 +63,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 ---
 
-### 3.3 Customer Management
+### 3.4 Customer Management
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
@@ -65,7 +75,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 ---
 
-### 3.4 Account Management
+### 3.5 Account Management
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
@@ -88,7 +98,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 ---
 
-### 3.5 Holding Management
+### 3.6 Holding Management
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
@@ -99,7 +109,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 ---
 
-### 3.6 Transaction Management
+### 3.7 Transaction Management
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
@@ -109,7 +119,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 ---
 
-### 3.7 Dashboard & Net Worth
+### 3.8 Dashboard & Net Worth
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
@@ -121,7 +131,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 ---
 
-### 3.8 Audit Log
+### 3.9 Audit Log
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|

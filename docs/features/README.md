@@ -31,7 +31,7 @@ When generating an implementation plan for a feature:
 | Feature | Status | Phase | Notes |
 | --- | --- | --- | --- |
 | [identity-auth](identity-auth.md) | accepted | Foundation | Login / Logout / Profile / JWT. Role = `UserRole` enum on ApplicationUser. Customer → 403. `/users/me` introduced. |
-| [tenants](tenants.md) | draft | Phase 1 | SystemAdmin only. CRUD + paginated list (filter/search). Name unique case-insensitive. No user creation on create. |
+| [tenants](tenants.md) | accepted | Phase 1 | SystemAdmin only. CRUD + paginated list (filter/search). Name unique case-insensitive. No user creation on create. |
 | [advisers](advisers.md) | draft | Phase 1 | TenantAdmin manages Advisers. Soft-disable requires reassigning Customers. |
 | [customers](customers.md) | draft | Phase 2 | Create / list / update / soft-disable. Must bind to an Adviser. |
 | [accounts](accounts.md) | draft | Phase 2 | Account lifecycle. Close is permanent (`Status = Closed`). |
