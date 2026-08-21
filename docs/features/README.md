@@ -11,6 +11,12 @@ Frontend (Adviser Portal) is **optional** in the Feature Spec. Section 9 (UI) ma
 3. Link it from the module table in [function-plan.md](../function-plan.md).
 4. When the slice ships, set `status: accepted` and update model / DB / API docs in the same change.
 
+## Model vs Slice discipline
+
+- `domain-model.md` and `database-design.md` describe the **target** model. They may (and should) be more complete than the features that have already shipped. Prefer updating them proactively when a clearer design emerges.
+- A Feature Spec remains a **strict vertical slice**: only the commands, queries, endpoints, invariants and tests that ship in *this* delivery belong in its “In” scope.
+- When implementing a feature you may add Entity + EF Configuration for tables/relationships that are already defined in the model docs *and* required by the current slice (foreign keys, etc.). Do **not** implement handlers, validators or endpoints that belong to later features.
+
 ## Index
 
 | Feature | Status | Phase | Notes |
