@@ -1,6 +1,6 @@
 ﻿using MyWealth.Application.Common.Interfaces;
 using MyWealth.Application.Common.Models;
-using MyWealth.Domain.Constants;
+using MyWealth.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
@@ -52,7 +52,7 @@ public class IdentityService : IIdentityService
     {
         var user = await _userManager.FindByIdAsync(userId);
 
-        return user != null && await _userManager.IsInRoleAsync(user, role);
+        return user != null && string.Equals(user.Role.ToString(), role, StringComparison.Ordinal);
     }
 
     public async Task<bool> AuthorizeAsync(string userId, string policyName)
@@ -104,9 +104,7 @@ public class IdentityService : IIdentityService
             return AuthenticationResult.Failed();
         }
 
-        var roles = await _userManager.GetRolesAsync(user);
-
-        if (roles.Contains(Roles.Customer))
+        if (user.Role == UserRole.Customer)
         {
             return AuthenticationResult.Customer();
         }
@@ -116,7 +114,7 @@ public class IdentityService : IIdentityService
             return AuthenticationResult.Disabled();
         }
 
-        var (token, expiresIn) = _jwtTokenGenerator.CreateToken(user, roles);
+        var (token, expiresIn) = _jwtTokenGenerator.CreateToken(user);
 
         return AuthenticationResult.Success(
             token,
@@ -124,7 +122,7 @@ public class IdentityService : IIdentityService
             user.Id,
             user.Email ?? string.Empty,
             user.DisplayName,
-            roles.FirstOrDefault() ?? string.Empty,
+            user.Role.ToString(),
             user.TenantId);
     }
 
@@ -137,14 +135,12 @@ public class IdentityService : IIdentityService
             return null;
         }
 
-        var roles = await _userManager.GetRolesAsync(user);
-
         return new CurrentUserDto
         {
             UserId = user.Id,
             Email = user.Email ?? string.Empty,
             DisplayName = user.DisplayName,
-            Role = roles.FirstOrDefault() ?? string.Empty,
+            Role = user.Role.ToString(),
             TenantId = user.TenantId,
             IsEnabled = user.IsEnabled
         };

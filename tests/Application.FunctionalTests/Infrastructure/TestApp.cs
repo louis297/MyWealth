@@ -1,4 +1,4 @@
-using MyWealth.Domain.Constants;
+using MyWealth.Domain.Enums;
 using MyWealth.Infrastructure.Data;
 using MyWealth.Infrastructure.Identity;
 using MediatR;
@@ -42,26 +42,26 @@ public static class TestApp
 
     public static async Task<string> RunAsDefaultUserAsync()
     {
-        return await RunAsUserAsync("test@local", "Testing1234!", []);
+        return await RunAsUserAsync("test@local", "Testing1234!", UserRole.Adviser);
     }
 
     public static async Task<string> RunAsSystemAdminAsync()
     {
-        return await RunAsUserAsync("admin@local", "Administrator1!", [Roles.SystemAdmin]);
+        return await RunAsUserAsync("admin@local", "Administrator1!", UserRole.SystemAdmin);
     }
 
     public static async Task<string> RunAsUserAsync(
         string userName,
         string password,
-        string[] roles,
+        UserRole role,
         int? tenantId = null,
         string? displayName = null,
         bool isEnabled = true)
     {
-        var user = await CreateUserAsync(userName, password, roles, tenantId, displayName, isEnabled);
+        var user = await CreateUserAsync(userName, password, role, tenantId, displayName, isEnabled);
 
         _userId = user.Id;
-        _roles = [..roles];
+        _roles = [role.ToString()];
         _tenantId = tenantId;
 
         return user.Id;
@@ -70,7 +70,7 @@ public static class TestApp
     public static async Task<ApplicationUser> CreateUserAsync(
         string userName,
         string password,
-        string[] roles,
+        UserRole role,
         int? tenantId = null,
         string? displayName = null,
         bool isEnabled = true)
@@ -85,6 +85,7 @@ public static class TestApp
             Email = userName,
             EmailConfirmed = true,
             DisplayName = displayName ?? userName,
+            Role = role,
             TenantId = tenantId,
             IsEnabled = isEnabled
         };
@@ -95,21 +96,6 @@ public static class TestApp
         {
             var errors = string.Join(Environment.NewLine, result.ToApplicationResult().Errors);
             throw new Exception($"Unable to create {userName}.{Environment.NewLine}{errors}");
-        }
-
-        if (roles.Length > 0)
-        {
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-
-            foreach (var role in roles)
-            {
-                if (!await roleManager.RoleExistsAsync(role))
-                {
-                    await roleManager.CreateAsync(new IdentityRole(role));
-                }
-            }
-
-            await userManager.AddToRolesAsync(user, roles);
         }
 
         return user;

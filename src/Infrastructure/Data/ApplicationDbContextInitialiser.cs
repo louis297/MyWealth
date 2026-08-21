@@ -1,4 +1,4 @@
-﻿using MyWealth.Domain.Constants;
+﻿using MyWealth.Domain.Enums;
 using MyWealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -25,18 +25,15 @@ public class ApplicationDbContextInitialiser
     private readonly ILogger<ApplicationDbContextInitialiser> _logger;
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
 
     public ApplicationDbContextInitialiser(
         ILogger<ApplicationDbContextInitialiser> logger,
         ApplicationDbContext context,
-        UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole> roleManager)
+        UserManager<ApplicationUser> userManager)
     {
         _logger = logger;
         _context = context;
         _userManager = userManager;
-        _roleManager = roleManager;
     }
 
     public async Task InitialiseAsync()
@@ -69,55 +66,40 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
-        await EnsureRoleAsync(Roles.SystemAdmin);
-        await EnsureRoleAsync(Roles.TenantAdmin);
-        await EnsureRoleAsync(Roles.Adviser);
-        await EnsureRoleAsync(Roles.Customer);
-
         await EnsureUserAsync(
-            email: "admin@localhost",
-            password: "Administrator1!",
-            displayName: "System Admin",
-            role: Roles.SystemAdmin,
+            email: "sa1@localhost",
+            password: "SystemAdmin1!",
+            displayName: "System Admin1",
+            role: UserRole.SystemAdmin,
             tenantId: null);
 
         await EnsureUserAsync(
-            email: "tenantadmin@localhost",
+            email: "t1ta1@localhost",
             password: "TenantAdmin1!",
-            displayName: "Tenant Admin",
-            role: Roles.TenantAdmin,
+            displayName: "Tenant1 Admin1",
+            role: UserRole.TenantAdmin,
             tenantId: 1);
 
         await EnsureUserAsync(
-            email: "adviser@localhost",
+            email: "t1ad1@localhost",
             password: "Adviser1!",
-            displayName: "Adviser",
-            role: Roles.Adviser,
+            displayName: "Tenant1 Adviser1",
+            role: UserRole.Adviser,
             tenantId: 1);
 
         await EnsureUserAsync(
-            email: "customer@localhost",
+            email: "t1c1@localhost",
             password: "Customer1!",
-            displayName: "Customer",
-            role: Roles.Customer,
+            displayName: "Tenant1 Customer1",
+            role: UserRole.Customer,
             tenantId: 1);
-    }
-
-    private async Task EnsureRoleAsync(string roleName)
-    {
-        if (await _roleManager.RoleExistsAsync(roleName))
-        {
-            return;
-        }
-
-        await _roleManager.CreateAsync(new IdentityRole(roleName));
     }
 
     private async Task EnsureUserAsync(
         string email,
         string password,
         string displayName,
-        string role,
+        UserRole role,
         int? tenantId)
     {
         if (await _userManager.FindByEmailAsync(email) is not null)
@@ -131,6 +113,7 @@ public class ApplicationDbContextInitialiser
             Email = email,
             EmailConfirmed = true,
             DisplayName = displayName,
+            Role = role,
             TenantId = tenantId,
             IsEnabled = true
         };
@@ -142,7 +125,5 @@ public class ApplicationDbContextInitialiser
             throw new InvalidOperationException(
                 $"Failed to seed user '{email}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
-
-        await _userManager.AddToRoleAsync(user, role);
     }
 }

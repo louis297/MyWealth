@@ -438,7 +438,7 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
 
 ### Roles (constants)
 
-Replace the starter `Roles.Administrator` with:
+String names of `UserRole`, used in JWT role claims and `[Authorize(Roles = …)]`. The stored value is the enum, not ASP.NET Identity roles.
 
 | Constant | Who | Login in MVP |
 | --- | --- | --- |

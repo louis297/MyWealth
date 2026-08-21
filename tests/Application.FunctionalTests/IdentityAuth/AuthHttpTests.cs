@@ -6,6 +6,7 @@ using System.Text.Json;
 using MyWealth.Application.IdentityAuth.GetCurrentUser;
 using MyWealth.Application.IdentityAuth.Login;
 using MyWealth.Domain.Constants;
+using MyWealth.Domain.Enums;
 
 namespace MyWealth.Application.FunctionalTests.IdentityAuth;
 
@@ -20,7 +21,7 @@ public class AuthHttpTests : TestBase
     [Test]
     public async Task Login_SystemAdmin_ReturnsJwtWithNullTenant()
     {
-        await TestApp.CreateUserAsync("admin@local", "Administrator1!", [Roles.SystemAdmin], displayName: "System Admin");
+        await TestApp.CreateUserAsync("admin@local", "Administrator1!", UserRole.SystemAdmin, displayName: "System Admin");
 
         var (status, login) = await PostLogin("admin@local", "Administrator1!");
 
@@ -42,7 +43,7 @@ public class AuthHttpTests : TestBase
         await TestApp.CreateUserAsync(
             "tenantadmin@local",
             "TenantAdmin1!",
-            [Roles.TenantAdmin],
+            UserRole.TenantAdmin,
             tenantId: 7,
             displayName: "Tenant Admin");
 
@@ -60,7 +61,7 @@ public class AuthHttpTests : TestBase
     [Test]
     public async Task Login_Adviser_Succeeds()
     {
-        await TestApp.CreateUserAsync("adviser@local", "Adviser1!", [Roles.Adviser], tenantId: 3);
+        await TestApp.CreateUserAsync("adviser@local", "Adviser1!", UserRole.Adviser, tenantId: 3);
 
         var (status, login) = await PostLogin("adviser@local", "Adviser1!");
 
@@ -73,7 +74,7 @@ public class AuthHttpTests : TestBase
     [Test]
     public async Task Login_Customer_Returns403()
     {
-        await TestApp.CreateUserAsync("customer@local", "Customer1!", [Roles.Customer], tenantId: 1);
+        await TestApp.CreateUserAsync("customer@local", "Customer1!", UserRole.Customer, tenantId: 1);
 
         using var client = TestApp.CreateClient();
         var response = await client.PostAsJsonAsync("/auth/login", new { email = "customer@local", password = "Customer1!" });
@@ -87,7 +88,7 @@ public class AuthHttpTests : TestBase
     [Test]
     public async Task Login_BadPassword_Returns401()
     {
-        await TestApp.CreateUserAsync("admin@local", "Administrator1!", [Roles.SystemAdmin]);
+        await TestApp.CreateUserAsync("admin@local", "Administrator1!", UserRole.SystemAdmin);
 
         using var client = TestApp.CreateClient();
         var response = await client.PostAsJsonAsync("/auth/login", new { email = "admin@local", password = "WrongPassword1!" });
@@ -110,7 +111,7 @@ public class AuthHttpTests : TestBase
         await TestApp.CreateUserAsync(
             "disabled@local",
             "Disabled1!",
-            [Roles.Adviser],
+            UserRole.Adviser,
             tenantId: 1,
             isEnabled: false);
 
@@ -144,7 +145,7 @@ public class AuthHttpTests : TestBase
         await TestApp.CreateUserAsync(
             "adviser@local",
             "Adviser1!",
-            [Roles.Adviser],
+            UserRole.Adviser,
             tenantId: 4,
             displayName: "Old Name");
 
@@ -194,7 +195,7 @@ public class AuthHttpTests : TestBase
     [Test]
     public async Task ChangePassword_WrongCurrentPassword_Returns400()
     {
-        await TestApp.CreateUserAsync("adviser@local", "Adviser1!", [Roles.Adviser], tenantId: 1);
+        await TestApp.CreateUserAsync("adviser@local", "Adviser1!", UserRole.Adviser, tenantId: 1);
 
         var (_, login) = await PostLogin("adviser@local", "Adviser1!");
         login.ShouldNotBeNull();

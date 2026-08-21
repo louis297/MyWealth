@@ -16,7 +16,7 @@ public sealed class JwtTokenGenerator
         _options = options.Value;
     }
 
-    public (string Token, int ExpiresIn) CreateToken(ApplicationUser user, IList<string> roles)
+    public (string Token, int ExpiresIn) CreateToken(ApplicationUser user)
     {
         var expires = DateTime.UtcNow.AddMinutes(_options.ExpiryMinutes);
 
@@ -25,13 +25,9 @@ public sealed class JwtTokenGenerator
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(ClaimTypes.NameIdentifier, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-            new(ClaimTypes.Email, user.Email ?? string.Empty)
+            new(ClaimTypes.Email, user.Email ?? string.Empty),
+            new(ClaimTypes.Role, user.Role.ToString())
         };
-
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
 
         if (user.TenantId is int tenantId)
         {

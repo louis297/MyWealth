@@ -11,5 +11,11 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
         builder.Property(u => u.DisplayName)
             .HasMaxLength(200)
             .IsRequired();
+
+        builder.Property(u => u.Role)
+            .HasConversion<int>()
+            .IsRequired();
+
+        builder.HasIndex(u => new { u.TenantId, u.Role });
     }
 }

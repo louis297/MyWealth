@@ -1,6 +1,6 @@
 ---
 title: "Identity & Auth"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-21
 related:
@@ -80,7 +80,7 @@ Domain events:
 **Role storage decision (Option B):**
 
 - `Role` is a **property/column on `ApplicationUser`**, not an ASP.NET Identity Role (`AspNetRoles` / `AspNetUserRoles`).
-- Preferred type: string or a small enum (`UserRole`) mapped to a column.
+- Type: `UserRole` enum (int: 0=SystemAdmin, 1=TenantAdmin, 2=Adviser, 3=Customer).
 - JWT Role claim is read directly from `ApplicationUser.Role`.
 - This keeps the model simple for MVP and aligns with the domain language (“all four roles live in the same User table”). Using Identity Roles would introduce a parallel role system that the next features would have to reconcile.
 
@@ -141,26 +141,24 @@ None — API only for this slice. Adviser Portal login / profile / change-passwo
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted (with Option B: Role as column)
-- [ ] `ApplicationUser` has `Role` property/column (not Identity Roles)
-- [ ] Login reads Role from the property and rejects Customer with 403
-- [ ] JWT Role claim comes from `ApplicationUser.Role`
-- [ ] Login / Logout / GetCurrentUser / UpdateCurrentUser / ChangePassword handlers + validators
-- [ ] Endpoints under `/auth` and `/users/me`
-- [ ] `IUser` / `CurrentUser` wired
-- [ ] Tests
-- [ ] Parent docs updated (domain-model, database-design, api-design)
-
-**Note on current implementation:** The first agentic coding pass used ASP.NET Identity Roles. That must be changed to a Role column/property on `ApplicationUser` before this feature is considered complete. The change is expected to land together with (or just before) the next feature that creates users.
+- [x] Feature spec accepted (with Option B: Role as column)
+- [x] `ApplicationUser` has `UserRole Role` property/column (not Identity Roles)
+- [x] Login reads Role from the property and rejects Customer with 403
+- [x] JWT Role claim comes from `ApplicationUser.Role`
+- [x] Login / Logout / GetCurrentUser / UpdateCurrentUser / ChangePassword handlers + validators
+- [x] Endpoints under `/auth` and `/users/me`
+- [x] `IUser` / `CurrentUser` wired
+- [x] Tests
+- [x] Parent docs updated (domain-model, database-design, api-design)
 
 ## 12. Open questions
 
-- Exact CLR type for Role on ApplicationUser (`string` vs `UserRole` enum) — prefer the same type that domain-model will use.
-- Whether a future Domain `User` table will own Role and ApplicationUser only mirrors it, or ApplicationUser remains the source of truth for auth.
+- Whether a future Domain `User` table will own Role and ApplicationUser only mirrors it, or ApplicationUser remains the source of truth for auth. (Currently ApplicationUser.Role is the auth source of truth.)
 
 ## 13. Changelog
 
 | Date | Change |
 | --- | --- |
-| 2026-08-21 | **Option B locked in**: Role is a property/column on ApplicationUser, not an ASP.NET Identity Role. Current implementation that used Identity Roles is marked for change. |
+| 2026-08-21 | Implemented Option B: `UserRole` enum on `ApplicationUser`; Identity Roles removed. |
+| 2026-08-21 | **Option B locked in**: Role is a property/column on ApplicationUser, not an ASP.NET Identity Role. |
 | 2026-08-21 | Created from discussion. Custom `/auth` routes, `/users/me` introduced, Customer login → 403, profile vs password split. UI deferred. |
