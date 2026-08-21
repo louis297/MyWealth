@@ -48,7 +48,7 @@ These match the current Domain project plus accepted ADRs. Change them only with
 
 - Entities inherit `BaseEntity` (`int Id` + domain event list) or `BaseAuditableEntity` (adds created/modified). Primary key is a database-generated `int` ([ADR 0007](adr/0007-baseentity-primary-key-int.md)).
 - Every tenant-scoped business entity carries a `TenantId`. Isolation is enforced by EF global query filters and application checks ([ADR 0005](adr/0005-shared-database-tenantid-isolation.md)). System Admin is the only actor with no tenant binding.
-- Value objects inherit `ValueObject` and compare by components (see `Colour` today; `Money` next).
+- Value objects inherit `ValueObject` and compare by components (`Money` next).
 - Monetary fields are a `Money` value object: `decimal` amount + currency code. Persistence precision is a database concern (`decimal(18,4)` or higher per [ADR 0004](adr/0004-money-as-decimal-with-currency.md)).
 - Domain events inherit `BaseEvent` and are raised on the entity, dispatched by `DispatchDomainEventsInterceptor`.
 - Domain has **no** EF, ASP.NET, or MediatR types.
@@ -58,52 +58,15 @@ These match the current Domain project plus accepted ADRs. Change them only with
 - **Customer cannot authenticate in MVP.** Login for `Role = Customer` is deliberately disabled at the Identity / Application layer. This keeps the data model ready for a future Customer portal without requiring a schema change.
 - Financial writes that must stay consistent (post a Transaction and adjust the related Holding) stay inside the **Account** aggregate.
 
-## 3. Current model (starter — replace)
+## 3. Current model
 
-Still the Clean Architecture sample. Remove these types when the first real aggregate lands.
-
-```mermaid
-classDiagram
-  class BaseAuditableEntity {
-    int Id
-    DateTimeOffset Created
-    string CreatedBy
-    DateTimeOffset LastModified
-    string LastModifiedBy
-  }
-  class TodoList {
-    string Title
-    Colour Colour
-    Items
-  }
-  class TodoItem {
-    int ListId
-    string Title
-    string Note
-    PriorityLevel Priority
-    bool Done
-  }
-  class Colour {
-    string Code
-  }
-  BaseAuditableEntity <|-- TodoList
-  BaseAuditableEntity <|-- TodoItem
-  TodoList "1" --> "*" TodoItem : Items
-  TodoList --> Colour
-```
+The Todo / WeatherForecast sample has been removed. Domain currently holds shared primitives (`BaseEntity`, `BaseAuditableEntity`, `ValueObject`, `BaseEvent`) and role constants. The first business aggregate (`Tenant` / `User`) lands with the tenants and advisers slices.
 
 | Type | Kind | File |
 | --- | --- | --- |
-| `TodoList` | Aggregate root | `src/Domain/Entities/TodoList.cs` |
-| `TodoItem` | Entity | `src/Domain/Entities/TodoItem.cs` |
-| `Colour` | Value object | `src/Domain/ValueObjects/Colour.cs` |
-| `PriorityLevel` | Enum | `src/Domain/Enums/PriorityLevel.cs` |
-| `TodoItemCompletedEvent` | Domain event | `src/Domain/Events/TodoItemCompletedEvent.cs` |
-| `Roles.Administrator` | Constant | `src/Domain/Constants/Roles.cs` |
+| `Roles.SystemAdmin` / `TenantAdmin` / `Adviser` / `Customer` | Constant | `src/Domain/Constants/Roles.cs` |
 
-`TodoItem.Done` setter raises `TodoItemCompletedEvent` when flipping to true. Handler: `LogTodoItemCompleted`.
-
-Replace `Roles.Administrator` with the real role constants in section 5 when Identity is wired to the real model.
+Identity login lives on `ApplicationUser` in Infrastructure. Domain `User` is not introduced by identity-auth.
 
 ## 4. Target model (MVP)
 
@@ -438,7 +401,7 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
 
 ### Roles (constants)
 
-Replace the starter `Roles.Administrator` with:
+Role constants in code:
 
 | Constant | Who | Login in MVP |
 | --- | --- | --- |
@@ -494,6 +457,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
+| 2026-08-21 | Starter Todo model removed. Role constants replaced with SystemAdmin / TenantAdmin / Adviser / Customer. |
 | 2026-08-19 | Finalised single-`User` design with four roles. Customer lives in the same table but authentication is explicitly disabled in MVP to keep the model ready for a future Customer portal. Updated Language, Modelling rules, 4.1, Type catalog and Identity section for consistency. |
 | 2026-08-18 | Replaced the placeholder target model with the MVP model from the function plan, glossary, and ADRs 0004–0007 |
 | 2026-08-16 | Template created; starter Todo model documented |

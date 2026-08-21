@@ -2,5 +2,8 @@
 
 public abstract class Roles
 {
-    public const string Administrator = nameof(Administrator);
+    public const string SystemAdmin = nameof(SystemAdmin);
+    public const string TenantAdmin = nameof(TenantAdmin);
+    public const string Adviser = nameof(Adviser);
+    public const string Customer = nameof(Customer);
 }

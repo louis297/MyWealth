@@ -25,17 +25,20 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors(static builder => 
+app.UseCors(static builder =>
     builder.AllowAnyMethod()
         .AllowAnyHeader()
         .AllowAnyOrigin());
+
+app.UseExceptionHandler(options => { });
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseFileServer();
 
 app.MapOpenApi();
 app.MapScalarApiReference();
-
-app.UseExceptionHandler(options => { });
 
 app.Map("/", () => Results.Redirect("/scalar"));
 

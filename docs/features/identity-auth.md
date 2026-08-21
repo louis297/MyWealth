@@ -1,6 +1,6 @@
 ---
 title: "Identity & Auth"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-21
 related:
@@ -130,13 +130,7 @@ Update [api-design.md](../api-design.md) in the same change.
 
 ## 9. UI
 
-Adviser Portal pages that belong to this slice:
-
-- Login page (email + password form, error states for 401 / 403)
-- Profile page / drawer (view + edit non-password fields)
-- Change-password form (current + new + confirm)
-
-Empty / error states should surface the 403 “Customer accounts cannot sign in” message clearly when relevant.
+None — API only for this slice. Adviser Portal login / profile / change-password screens are deferred until the frontend project exists.
 
 ## 10. Tests
 
@@ -148,21 +142,22 @@ Empty / error states should surface the 403 “Customer accounts cannot sign in�
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] Confirm ApplicationUser columns (DisplayName, Role, TenantId, \ldots)
-- [ ] Login / Logout / GetCurrentUser / UpdateCurrentUser / ChangePassword handlers + validators
-- [ ] Endpoints under `/auth` and `/users/me`
-- [ ] `IUser` / `CurrentUser` wired
-- [ ] Tests
-- [ ] Parent docs updated (especially api-design.md — remove “no /me”, document the new routes and the 403 Customer rule)
+- [x] Feature spec accepted
+- [x] Confirm ApplicationUser columns (DisplayName, TenantId, IsEnabled, AdviserId). Role is an ASP.NET Identity role, not a column.
+- [x] Login / Logout / GetCurrentUser / UpdateCurrentUser / ChangePassword handlers + validators
+- [x] Endpoints under `/auth` and `/users/me`
+- [x] `IUser` / `CurrentUser` wired
+- [x] Tests
+- [x] Parent docs updated (especially api-design.md — remove “no /me”, document the new routes and the 403 Customer rule)
 
 ## 12. Open questions
 
-- Exact property name on ApplicationUser for the display name (`DisplayName` vs `FullName`) — align with database-design.md when the first migration lands.
-- Whether logout should also blacklist the JWT (MVP can rely on short-lived tokens + client-side discard).
+- Display name on ApplicationUser is **DisplayName**. Domain `User.Name` still lands with the tenants / advisers slices.
+- Logout does **not** blacklist the JWT. Tokens are short-lived (8 hours); the client discards them. `POST /auth/logout` returns 204.
 
 ## 13. Changelog
 
 | Date | Change |
 | --- | --- |
+| 2026-08-21 | Implemented: JWT Bearer, custom `/auth` + `/users/me`, DisplayName, no token blacklist, UI deferred. Status accepted. |
 | 2026-08-21 | Created from discussion. Custom `/auth` routes, `/users/me` introduced, Customer login → 403, profile vs password split. |
