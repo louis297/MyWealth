@@ -2,13 +2,14 @@
 title: API design
 status: draft
 owner: ""
-last_updated: 2026-08-20
+last_updated: 2026-08-21
 related:
   - architecture.md
   - function-plan.md
   - domain-model.md
   - database-design.md
   - glossary.md
+  - features/identity-auth.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
   - adr/0004-money-as-decimal-with-currency.md
   - adr/0005-shared-database-tenantid-isolation.md
@@ -28,7 +29,7 @@ This document describes the MVP API for the Adviser Portal. It is derived from t
 | --- | --- |
 | Style | Minimal APIs, typed results (`Ok`, `Created`, `NoContent`, `BadRequest`, …) |
 | Dispatch | Endpoint sends a MediatR command/query. No `DbContext` in endpoints. |
-| Auth default | `groupBuilder.RequireAuthorization()` on the group, unless it is the Identity group |
+| Auth default | `groupBuilder.RequireAuthorization()` on the group, unless it is the auth/login group |
 | Route | Prefer kebab-case (`/accounts`, `/net-worth`). Group name ≈ type name. |
 | Ids | Route `{id}` must match the command's `Id` on updates; otherwise `400` |
 | Create | `201 Created` with the new `int` id |
@@ -46,10 +47,14 @@ This document describes the MVP API for the Adviser Portal. It is derived from t
 
 ### 2.1 Authentication
 
-- Scheme: email + password + JWT (ASP.NET Identity Bearer tokens via `MapIdentityApi<ApplicationUser>`).
-- Additional endpoint: `POST /users/logout` (requires authentication).
-- Current user: `IUser` / `Web/Services/CurrentUser.cs`.
-- Customer role login is deliberately disabled in the Application / Identity layer for MVP.
+- Scheme: email + password + JWT (ASP.NET Identity + Bearer tokens).
+- Custom routes are used instead of exposing the raw `MapIdentityApi` surface.
+- Login: `POST /auth/login` (anonymous). Returns a JWT on success.
+- Logout: `POST /auth/logout` (requires authentication).
+- Current user profile: `GET /users/me`, `PUT /users/me`, `PUT /users/me/password`.
+- Current user abstraction: `IUser` / `Web/Services/CurrentUser.cs`.
+- **Customer role login is deliberately rejected with 403** in the Application layer for MVP.
+- JWT must contain at least: user id, email, role, tenantId (null for SystemAdmin).
 
 ### 2.2 Roles and visibility
 
@@ -93,6 +98,7 @@ Notes:
 | Validation failure | 400 | Validation problem details (FluentValidation errors) |
 | Unauthenticated | 401 | — |
 | Authenticated but not allowed | 403 | — |
+| Customer role attempts to log in | **403** | — |
 | Missing / other-tenant / other-adviser resource | 404 | — |
 | Business rule violation (e.g. post to Closed account) | 400 | Problem details |
 | Unhandled | 500 | Exception handler |
@@ -101,7 +107,8 @@ Notes:
 
 | Resource | Base route | Methods | Auth | Notes |
 | --- | --- | --- | --- | --- |
-| Identity / Users | Identity paths + `/users/logout` | Login, Logout | Mixed | Customer login disabled |
+| Auth | `/auth` | login, logout | Mixed | Custom routes. Customer login → 403 |
+| Current user | `/users/me` | GET, PUT, PUT password | user | Profile (non-password) + password change |
 | Tenants | `/tenants` | GET list, GET id, POST, PUT | SystemAdmin only | |
 | Advisers | `/advisers` | GET list, GET id, POST, PUT, disable | TenantAdmin | |
 | Customers | `/customers` | GET list, GET id, POST, PUT, disable | TenantAdmin, Adviser | Must supply `AdviserId` on create |
@@ -113,11 +120,24 @@ Notes:
 
 ## 5. Endpoint details
 
-### 5.1 Identity
+### 5.1 Auth & Current user
 
-- Login / refresh / etc. come from `MapIdentityApi<ApplicationUser>`.
-- `POST /users/logout` — requires authentication.
-- No `/me` endpoint in MVP. The client stores claims from the JWT.
+| Method | Route | Auth | Success | Errors | Description |
+| --- | --- | --- | --- | --- | --- |
+| POST | `/auth/login` | anonymous | 200 + token payload | 400, 401, **403 (Customer role)** | Email + password → JWT |
+| POST | `/auth/logout` | user | 204 | 401 | Sign out |
+| GET | `/users/me` | user | 200 + CurrentUserVm | 401 | Current user profile |
+| PUT | `/users/me` | user | 204 | 400, 401 | Update non-password profile fields |
+| PUT | `/users/me/password` | user | 204 | 400, 401 | Change password (requires current password) |
+
+Rules:
+
+- Customer-role accounts always receive **403** on login, even if the credentials are otherwise valid.
+- `PUT /users/me` may change only non-password profile fields (e.g. display name). Email, Role, TenantId and IsEnabled are immutable through this endpoint.
+- `PUT /users/me/password` requires the current password and a new password that satisfies Identity password rules.
+- JWT claims must include at least: user id, email, role, tenantId (null for SystemAdmin).
+
+See feature spec: [identity-auth](features/identity-auth.md).
 
 ### 5.2 Tenants (SystemAdmin only)
 
@@ -251,10 +271,12 @@ When adding a group:
 - Custom transaction categories
 - Automatic multi-currency conversion
 - Report export (CSV / PDF)
-- `/me` profile endpoint
 - API versioning
 - Production CORS tightening
 - Data-archival / clean-up APIs (future maintenance scripts only)
+- Password reset / forgot-password flow
+- Refresh tokens
+- Third-party / social login
 
 ## 9. Confirmed decisions
 
@@ -265,7 +287,9 @@ When adding a group:
 | Account close | `Status = Closed`, permanent, no re-activation |
 | Customer / Adviser removal | Soft disable (`IsEnabled = false`) + mandatory reassignment for Advisers |
 | Net Worth | Supports optional `customerId` filter |
-| `/me` | Not implemented in MVP |
+| Auth routes | Custom `/auth/login` + `/auth/logout` (not raw MapIdentityApi surface) |
+| Current user | `/users/me` (GET + PUT profile) and `/users/me/password` |
+| Customer login | Explicitly rejected with **403** |
 | Transaction create response | Return only success + id; client re-fetches Holding if needed |
 | Future clean-up | Possible offline script that moves Closed/Disabled rows to archive tables |
 
@@ -273,5 +297,6 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-21 | Auth surface finalised: custom `/auth` routes, introduced `/users/me` + password endpoint, Customer login → 403. Reversed earlier “no /me” decision. Linked to identity-auth feature spec. |
 | 2026-08-20 | Full MVP design written from function-plan, domain-model, database-design and confirmed discussion points (soft-disable, nested holdings, SystemAdmin Option A, irreversible Account close, etc.) |
 | 2026-08-16 | Template created; starter endpoint groups listed |
