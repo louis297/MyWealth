@@ -1,6 +1,7 @@
 ﻿using MyWealth.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using NotFoundException = MyWealth.Application.Common.Exceptions.NotFoundException;
 
 namespace MyWealth.Web.Infrastructure;
 
