@@ -17,12 +17,21 @@ Frontend (Adviser Portal) is **optional** in the Feature Spec. Section 9 (UI) ma
 - A Feature Spec remains a **strict vertical slice**: only the commands, queries, endpoints, invariants and tests that ship in *this* delivery belong in its “In” scope.
 - When implementing a feature you may add Entity + EF Configuration for tables/relationships that are already defined in the model docs *and* required by the current slice (foreign keys, etc.). Do **not** implement handlers, validators or endpoints that belong to later features.
 
+## Agentic coding conventions
+
+When generating an implementation plan for a feature:
+
+- Break the work into clear, sequential steps.
+- Explicitly mark each step that should produce a git commit (e.g. “Step 3 → commit: add Tenant entity + EF configuration”).
+- Prefer small, focused commits that keep the repository in a buildable state after each commit.
+- Do not batch unrelated changes into a single commit.
+
 ## Index
 
 | Feature | Status | Phase | Notes |
 | --- | --- | --- | --- |
 | [identity-auth](identity-auth.md) | accepted | Foundation | Login / Logout / Profile / JWT. Role = `UserRole` enum on ApplicationUser. Customer → 403. `/users/me` introduced. |
-| [tenants](tenants.md) | draft | Phase 1 | SystemAdmin only. CRUD tenants (Option A). |
+| [tenants](tenants.md) | draft | Phase 1 | SystemAdmin only. CRUD + paginated list (filter/search). Name unique case-insensitive. No user creation on create. |
 | [advisers](advisers.md) | draft | Phase 1 | TenantAdmin manages Advisers. Soft-disable requires reassigning Customers. |
 | [customers](customers.md) | draft | Phase 2 | Create / list / update / soft-disable. Must bind to an Adviser. |
 | [accounts](accounts.md) | draft | Phase 2 | Account lifecycle. Close is permanent (`Status = Closed`). |
