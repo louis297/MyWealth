@@ -32,7 +32,7 @@ Shared words. If a feature spec introduces a new term, add it here in the same c
 | - | - |
 | AppHost | Aspire host (`src/AppHost`) that starts SQL Server and `webapi` |
 | webapi | Aspire resource name for `src/Web` |
-| AdviserPortal | Reserved Aspire name; no project yet |
+| AdviserPortal | Reserved Aspire resource name `adviser-portal`; no project yet |
 | MyWealthDb | SQL Server database name and connection-string name |
 | Command | MediatR write use case |
 | Query | MediatR read use case |

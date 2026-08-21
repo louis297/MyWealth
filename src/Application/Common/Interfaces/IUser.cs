@@ -3,6 +3,8 @@
 public interface IUser
 {
     string? Id { get; }
-    List<string>? Roles { get; }
 
+    IReadOnlyList<string>? Roles { get; }
+
+    int? TenantId { get; }
 }

@@ -23,6 +23,8 @@ How MyWealth is put together. Update this when a layer, host, or cross-cutting b
 
 This is a light-touch document. Most of the structure is already fixed by the Clean Architecture + Aspire layout. Update only when the frontend hosting model, portal split, or a cross-cutting concern changes.
 
+AuthN for the API is **JWT Bearer**. ASP.NET Identity stores users and hashes passwords; custom endpoints issue and consume JWTs. The template’s `MapIdentityApi` / `AddBearerToken` surface is not used.
+
 ## 1. Style
 
 Clean Architecture + CQRS (via MediatR), hosted by .NET Aspire.
@@ -148,7 +150,7 @@ dotnet run --project src/AppHost
 
 | Concern | Current choice | Where it lives |
 | --- | --- | --- |
-| AuthN | Email + password + JWT (ASP.NET Identity) | `Infrastructure/Identity`, `Web/Endpoints` |
+| AuthN | Email + password + JWT Bearer (ASP.NET Identity for users/passwords; custom `/auth` + `/users/me`, not MapIdentityApi) | `Infrastructure/Identity`, `Web/Endpoints` |
 | AuthZ | `[Authorize]` + `AuthorizationBehaviour` + role / TenantId checks | `Application/Common/Security` |
 | Multi-tenancy | Shared database + row-level `TenantId` + EF global query filters | Domain entities + Infrastructure filters |
 | Money | `Money` value object (`decimal` amount + currency) | Domain + EF owned type |
@@ -196,4 +198,5 @@ Create an ADR when you change any of the following. Current defaults and their A
 | 2026-08-16 | Template created from the current starter snapshot |
 | 2026-08-20 | Light-touch update based on accepted ADRs 0001–0007 |
 | 2026-08-20 | Confirmed: frontend hosted in Aspire; MVP only Adviser Portal; forbid generic Frontend/Web names |
+| 2026-08-21 | Identity-auth slice: JwtBearer, custom `/auth` and `/users/me`, Todo/Weather sample removed |
 | 2026-08-20 | Seeding strategy clarified: most business data via direct SQL, Identity users + passwords via `UserManager` in backend; CORS production config deferred until after MVP |

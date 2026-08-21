@@ -1,6 +1,4 @@
-﻿using MyWealth.Domain.Constants;
-using MyWealth.Domain.Entities;
-using MyWealth.Domain.ValueObjects;
+﻿using MyWealth.Domain.Enums;
 using MyWealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -27,14 +25,15 @@ public class ApplicationDbContextInitialiser
     private readonly ILogger<ApplicationDbContextInitialiser> _logger;
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly RoleManager<IdentityRole> _roleManager;
 
-    public ApplicationDbContextInitialiser(ILogger<ApplicationDbContextInitialiser> logger, ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    public ApplicationDbContextInitialiser(
+        ILogger<ApplicationDbContextInitialiser> logger,
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager)
     {
         _logger = logger;
         _context = context;
         _userManager = userManager;
-        _roleManager = roleManager;
     }
 
     public async Task InitialiseAsync()
@@ -67,44 +66,64 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
-        // Default roles
-        var administratorRole = new IdentityRole(Roles.Administrator);
+        await EnsureUserAsync(
+            email: "sa1@localhost",
+            password: "SystemAdmin1!",
+            displayName: "System Admin1",
+            role: UserRole.SystemAdmin,
+            tenantId: null);
 
-        if (_roleManager.Roles.All(r => r.Name != administratorRole.Name))
+        await EnsureUserAsync(
+            email: "t1ta1@localhost",
+            password: "TenantAdmin1!",
+            displayName: "Tenant1 Admin1",
+            role: UserRole.TenantAdmin,
+            tenantId: 1);
+
+        await EnsureUserAsync(
+            email: "t1ad1@localhost",
+            password: "Adviser1!",
+            displayName: "Tenant1 Adviser1",
+            role: UserRole.Adviser,
+            tenantId: 1);
+
+        await EnsureUserAsync(
+            email: "t1c1@localhost",
+            password: "Customer1!",
+            displayName: "Tenant1 Customer1",
+            role: UserRole.Customer,
+            tenantId: 1);
+    }
+
+    private async Task EnsureUserAsync(
+        string email,
+        string password,
+        string displayName,
+        UserRole role,
+        int? tenantId)
+    {
+        if (await _userManager.FindByEmailAsync(email) is not null)
         {
-            await _roleManager.CreateAsync(administratorRole);
+            return;
         }
 
-        // Default users
-        var administrator = new ApplicationUser { UserName = "administrator@localhost", Email = "administrator@localhost" };
-
-        if (_userManager.Users.All(u => u.UserName != administrator.UserName))
+        var user = new ApplicationUser
         {
-            await _userManager.CreateAsync(administrator, "Administrator1!");
-            if (!string.IsNullOrWhiteSpace(administratorRole.Name))
-            {
-                await _userManager.AddToRolesAsync(administrator, new [] { administratorRole.Name });
-            }
-        }
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            DisplayName = displayName,
+            Role = role,
+            TenantId = tenantId,
+            IsEnabled = true
+        };
 
-        // Default data
-        // Seed, if necessary
-        if (!_context.TodoLists.Any())
+        var result = await _userManager.CreateAsync(user, password);
+
+        if (!result.Succeeded)
         {
-            _context.TodoLists.Add(new TodoList
-            {
-                Title = "Tasks",
-                Colour = Colour.Green,
-                Items =
-                {
-                    new TodoItem { Title = "Make a todo list 📃" },
-                    new TodoItem { Title = "Check off the first item ✅" },
-                    new TodoItem { Title = "Realise you've already done two things on the list! 🤯"},
-                    new TodoItem { Title = "Reward yourself with a nice, long nap 🏆" },
-                }
-            });
-
-            await _context.SaveChangesAsync();
+            throw new InvalidOperationException(
+                $"Failed to seed user '{email}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
     }
 }

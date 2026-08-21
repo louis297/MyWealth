@@ -1,4 +1,4 @@
-using MyWealth.Application.Common.Exceptions;
+﻿using MyWealth.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -34,10 +34,11 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
                 Title = "Unauthorized",
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.2"
             }),
-            ForbiddenAccessException => (StatusCodes.Status403Forbidden, new ProblemDetails
+            ForbiddenAccessException fe => (StatusCodes.Status403Forbidden, new ProblemDetails
             {
                 Status = StatusCodes.Status403Forbidden,
                 Title = "Forbidden",
+                Detail = string.IsNullOrWhiteSpace(fe.Message) ? null : fe.Message,
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.4"
             }),
             _ => (-1, null)

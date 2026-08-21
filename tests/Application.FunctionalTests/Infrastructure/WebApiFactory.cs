@@ -12,19 +12,17 @@ public class WebApiFactory(string connectionString) : WebApplicationFactory<Prog
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder
-            .UseSetting("ConnectionStrings:MyWealthDb", connectionString);
+            .UseSetting("ConnectionStrings:MyWealthDb", connectionString)
+            .UseSetting("Jwt:Issuer", "MyWealth")
+            .UseSetting("Jwt:Audience", "MyWealth")
+            .UseSetting("Jwt:Key", "TEST_ONLY_MyWealth_jwt_signing_key_32+")
+            .UseSetting("Jwt:ExpiryMinutes", "480");
 
         builder.ConfigureTestServices(services =>
         {
             services
                 .RemoveAll<IUser>()
-                .AddTransient(provider =>
-                {
-                    var mock = new Mock<IUser>();
-                    mock.SetupGet(x => x.Roles).Returns(TestApp.GetRoles());
-                    mock.SetupGet(x => x.Id).Returns(TestApp.GetUserId());
-                    return mock.Object;
-                });
+                .AddTransient<IUser, TestUser>();
         });
     }
 }

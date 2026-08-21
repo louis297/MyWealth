@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 
 namespace MyWealth.Web.Infrastructure;
 
@@ -18,7 +18,9 @@ public static class WebApplicationExtensions
         foreach (var type in endpointGroupTypes)
         {
             var groupName = type.Name;
-            var routePrefix = type.GetProperty(nameof(IEndpointGroup.RoutePrefix))
+            var routePrefix = type.GetProperty(
+                    nameof(IEndpointGroup.RoutePrefix),
+                    BindingFlags.Public | BindingFlags.Static | BindingFlags.FlattenHierarchy)
                 ?.GetValue(null) as string ?? $"/api/{groupName}";
             var group = app.MapGroup(routePrefix).WithTags(groupName);
             type.GetMethod(nameof(IEndpointGroup.Map))!.Invoke(null, [group]);

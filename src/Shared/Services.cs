@@ -3,10 +3,10 @@
 public static class Services
 {
     /// <summary>
-    /// The name of the Web Frontend service.
-    /// This service is responsible for hosting the frontend application.
+    /// Reserved Aspire resource name for the Adviser Portal frontend.
+    /// MVP hosts this portal later; do not use generic names such as "frontend" or "webfrontend".
     /// </summary>
-    public const string WebFrontend = "webfrontend";
+    public const string AdviserPortal = "adviser-portal";
 
     /// <summary>
     /// The name of the Web API service.

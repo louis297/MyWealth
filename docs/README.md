@@ -51,7 +51,7 @@ Use the same `status` on every doc front matter:
 
 ## Current codebase snapshot
 
-The repo was generated from [Clean.Architecture.Solution.Template](https://github.com/jasontaylordev/CleanArchitecture) 10.8.0. The starter Todo / WeatherForecast sample is still in place and should be replaced as real MyWealth slices land.
+The repo was generated from [Clean.Architecture.Solution.Template](https://github.com/jasontaylordev/CleanArchitecture) 10.8.0. The starter Todo / WeatherForecast sample has been removed. Identity & Auth is the first real slice.
 
 | Layer | Project | Role |
 | --- | --- | --- |

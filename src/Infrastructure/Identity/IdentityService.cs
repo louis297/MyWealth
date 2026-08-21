@@ -1,8 +1,8 @@
-using MyWealth.Application.Common.Interfaces;
+﻿using MyWealth.Application.Common.Interfaces;
 using MyWealth.Application.Common.Models;
+using MyWealth.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace MyWealth.Infrastructure.Identity;
 
@@ -11,15 +11,18 @@ public class IdentityService : IIdentityService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserClaimsPrincipalFactory<ApplicationUser> _userClaimsPrincipalFactory;
     private readonly IAuthorizationService _authorizationService;
+    private readonly JwtTokenGenerator _jwtTokenGenerator;
 
     public IdentityService(
         UserManager<ApplicationUser> userManager,
         IUserClaimsPrincipalFactory<ApplicationUser> userClaimsPrincipalFactory,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        JwtTokenGenerator jwtTokenGenerator)
     {
         _userManager = userManager;
         _userClaimsPrincipalFactory = userClaimsPrincipalFactory;
         _authorizationService = authorizationService;
+        _jwtTokenGenerator = jwtTokenGenerator;
     }
 
     public async Task<string?> GetUserNameAsync(string userId)
@@ -35,6 +38,9 @@ public class IdentityService : IIdentityService
         {
             UserName = userName,
             Email = userName,
+            EmailConfirmed = true,
+            DisplayName = userName,
+            IsEnabled = true
         };
 
         var result = await _userManager.CreateAsync(user, password);
@@ -46,7 +52,7 @@ public class IdentityService : IIdentityService
     {
         var user = await _userManager.FindByIdAsync(userId);
 
-        return user != null && await _userManager.IsInRoleAsync(user, role);
+        return user != null && string.Equals(user.Role.ToString(), role, StringComparison.Ordinal);
     }
 
     public async Task<bool> AuthorizeAsync(string userId, string policyName)
@@ -75,6 +81,104 @@ public class IdentityService : IIdentityService
     public async Task<Result> DeleteUserAsync(ApplicationUser user)
     {
         var result = await _userManager.DeleteAsync(user);
+
+        return result.ToApplicationResult();
+    }
+
+    public async Task<AuthenticationResult> AuthenticateAsync(
+        string email,
+        string password,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user is null)
+        {
+            return AuthenticationResult.Failed();
+        }
+
+        var passwordValid = await _userManager.CheckPasswordAsync(user, password);
+
+        if (!passwordValid)
+        {
+            return AuthenticationResult.Failed();
+        }
+
+        if (user.Role == UserRole.Customer)
+        {
+            return AuthenticationResult.Customer();
+        }
+
+        if (!user.IsEnabled)
+        {
+            return AuthenticationResult.Disabled();
+        }
+
+        var (token, expiresIn) = _jwtTokenGenerator.CreateToken(user);
+
+        return AuthenticationResult.Success(
+            token,
+            expiresIn,
+            user.Id,
+            user.Email ?? string.Empty,
+            user.DisplayName,
+            user.Role.ToString(),
+            user.TenantId);
+    }
+
+    public async Task<CurrentUserDto?> GetCurrentUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return null;
+        }
+
+        return new CurrentUserDto
+        {
+            UserId = user.Id,
+            Email = user.Email ?? string.Empty,
+            DisplayName = user.DisplayName,
+            Role = user.Role.ToString(),
+            TenantId = user.TenantId,
+            IsEnabled = user.IsEnabled
+        };
+    }
+
+    public async Task<Result> UpdateDisplayNameAsync(
+        string userId,
+        string displayName,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        user.DisplayName = displayName;
+
+        var result = await _userManager.UpdateAsync(user);
+
+        return result.ToApplicationResult();
+    }
+
+    public async Task<Result> ChangePasswordAsync(
+        string userId,
+        string currentPassword,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
 
         return result.ToApplicationResult();
     }

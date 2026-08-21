@@ -438,7 +438,7 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
 
 ### Roles (constants)
 
-Replace the starter `Roles.Administrator` with:
+String names of `UserRole`, used in JWT role claims and `[Authorize(Roles = …)]`. The stored value is the enum, not ASP.NET Identity roles.
 
 | Constant | Who | Login in MVP |
 | --- | --- | --- |
@@ -458,13 +458,15 @@ Replace the starter `Roles.Administrator` with:
 
 | Concept | Lives in | Exposed to Domain as |
 | --- | --- | --- |
-| Login, password, email-as-credential, JWT | `Infrastructure/Identity/ApplicationUser` + Identity endpoints ([ADR 0006](adr/0006-email-password-jwt-authentication.md)) | not referenced directly |
+| Login, password, email-as-credential, JWT | `Infrastructure/Identity/ApplicationUser` + custom `/auth` endpoints ([ADR 0006](adr/0006-email-password-jwt-authentication.md), [identity-auth](features/identity-auth.md)) | not referenced directly |
 | "Who is acting" | `IUser` (`src/Application`); tenant from JWT claim or header ([ADR 0005](adr/0005-shared-database-tenantid-isolation.md)) | `UserId`, `TenantId`, `CreatedBy` / `LastModifiedBy` |
-| Login-capable role | Identity role + `[Authorize(Roles = …)]` | `Roles.*` constants |
-| Person in the firm (any of the four roles) | Domain `User` | `User.Id`, `User.Role`, `User.AdviserId` |
-| Customer login | Disabled in MVP by Application / Identity policy | Will be enabled later for Customer portal without changing the domain model |
+| Login-capable role | **`ApplicationUser.Role` property/column** (Option B). Not ASP.NET Identity Roles (`AspNetRoles`). JWT Role claim is read from this property. | `Roles.*` constants / `UserRole` enum |
+| Person in the firm (any of the four roles) | Domain `User` (when introduced) or currently mirrored on `ApplicationUser` | `User.Id`, `User.Role`, `User.AdviserId` |
+| Customer login | Disabled in MVP by Application / Identity policy (check `ApplicationUser.Role == Customer` → 403) | Will be enabled later for Customer portal without changing the domain model |
 | Authorization / data scope | `[Authorize]` + handlers that filter by tenant and (for Advisers) `AdviserId` | not a domain service |
-| Profile name / password change | Identity / Application | not a domain aggregate |
+| Profile name / password change | Identity / Application (`/users/me`, `/users/me/password`) | not a domain aggregate |
+
+**Role storage (locked 2026-08-21):** Role is a column on `ApplicationUser`, not an entry in `AspNetRoles` / `AspNetUserRoles`. This matches the domain language (“all four roles live in the same User table”) and avoids a parallel role system. A future Domain `Users` table will carry the same `Role` value; `ApplicationUser` remains the source of truth for authentication claims until that table is fully wired.
 
 Do not put `ApplicationUser` navigation properties on domain entities. The domain `User` is linked to Identity by a string `UserId` (or by matching Email) when needed.
 
@@ -479,7 +481,6 @@ Decided by existing docs (do not re-open without an ADR or a function-plan chang
 - Customer cannot log in during MVP (login policy is disabled for `Role = Customer`)
 - Holdings live inside the Account aggregate so a post can adjust quantity and cost basis in one consistency boundary
 - Custom transaction categories and net-worth snapshots are out of MVP
-- Order / Fill separation is deferred. Transaction remains the only recorded money movement. An optional OrderId can be added later without breaking existing data.
 
 Still open (resolve in a feature spec or a follow-up edit of this file):
 
@@ -494,6 +495,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
+| 2026-08-21 | Locked Role storage Option B: Role is a property/column on `ApplicationUser`, not ASP.NET Identity Roles. Updated Identity vs domain section. |
 | 2026-08-19 | Finalised single-`User` design with four roles. Customer lives in the same table but authentication is explicitly disabled in MVP to keep the model ready for a future Customer portal. Updated Language, Modelling rules, 4.1, Type catalog and Identity section for consistency. |
 | 2026-08-18 | Replaced the placeholder target model with the MVP model from the function plan, glossary, and ADRs 0004–0007 |
 | 2026-08-16 | Template created; starter Todo model documented |
