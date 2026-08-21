@@ -26,9 +26,18 @@ public class Tenants : IEndpointGroup
     [EndpointDescription("Returns a paginated list of tenants. Supports filtering by enabled state and searching by id or name. SystemAdmin only.")]
     public static async Task<Ok<PaginatedList<TenantVm>>> GetTenants(
         ISender sender,
-        [AsParameters] GetTenantsQuery query)
+        int page = 1,
+        int pageSize = 20,
+        bool? isEnabled = null,
+        string? search = null)
     {
-        var result = await sender.Send(query);
+        var result = await sender.Send(new GetTenantsQuery
+        {
+            Page = page,
+            PageSize = pageSize,
+            IsEnabled = isEnabled,
+            Search = search
+        });
 
         return TypedResults.Ok(result);
     }

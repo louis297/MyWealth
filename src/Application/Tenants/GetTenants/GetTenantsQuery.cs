@@ -7,7 +7,7 @@ using MyWealth.Domain.Constants;
 namespace MyWealth.Application.Tenants.GetTenants;
 
 [Authorize(Roles = Roles.SystemAdmin)]
-public record GetTenantsQuery : IRequest<PaginatedList<TenantVm>>
+public class GetTenantsQuery : IRequest<PaginatedList<TenantVm>>
 {
     public int Page { get; init; } = 1;
 
@@ -31,7 +31,7 @@ public class GetTenantsQueryHandler : IRequestHandler<GetTenantsQuery, Paginated
 
     public async Task<PaginatedList<TenantVm>> Handle(GetTenantsQuery request, CancellationToken cancellationToken)
     {
-        var query = _context.Tenants.AsQueryable();
+        var query = _context.Tenants.AsNoTracking();
 
         if (request.IsEnabled is bool isEnabled)
         {
