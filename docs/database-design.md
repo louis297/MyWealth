@@ -167,6 +167,8 @@ erDiagram
 
 ASP.NET Identity tables: `AspNetUsers` is extended via `ApplicationUser` with business columns (`DisplayName`, **`Role`**, `TenantId`, `IsEnabled`, `AdviserId`). **`AspNetRoles` / `AspNetUserRoles` are not used for the four business roles** (Option B, locked 2026-08-21). Role lives as a column on `ApplicationUser` and (when the Domain `Users` table is fully introduced) on `Users.Role`. The business `Users` table links to Identity via `IdentityUserId` (nvarchar, matching Identity’s key) or by Email.
 
+**`ApplicationUser.TenantId` has no foreign-key constraint to `Tenants`.** This is intentional: Identity stays loosely coupled to the business schema, functional tests can plant arbitrary `TenantId` values, and the real referential integrity for tenant membership lives on the Domain `Users` table (`TenantId` FK → Tenants). Do not add an FK on `AspNetUsers` unless a future feature explicitly requires it.
+
 ### 4.2 Column details
 
 #### Tenants
@@ -311,7 +313,7 @@ Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
 | Date | Change |
 | --- | --- |
-| 2026-08-22 | Tenants table shipped: unique Name via CI collation + unique index. Sample Tenant is seeded before Identity users. Migrations still deferred (`EnsureCreated`). |
+| 2026-08-22 | Tenants table shipped: unique Name via CI collation + unique index. Sample Tenant is seeded before Identity users. Migrations still deferred (`EnsureCreated`). Explicit note: `ApplicationUser.TenantId` has **no FK** to Tenants (by design; real FK lives on Domain `Users`). |
 | 2026-08-21 | Locked Role storage Option B: Role is a column on ApplicationUser; AspNetRoles/AspNetUserRoles are not used for the four business roles. |
 | 2026-08-19 | Removed obsolete Todo starter schema (§4). Renumbered sections. Clarified that currency reference data is not seeded in MVP. |
 | 2026-08-19 | Replaced placeholder target schema with full MVP model aligned to domain-model.md (single User table with four roles, TenantId on all business tables, owned Money/Instrument, indexes and delete behaviour). |
