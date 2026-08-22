@@ -1,7 +1,9 @@
-﻿using MyWealth.Domain.Enums;
+﻿using MyWealth.Domain.Entities;
+using MyWealth.Domain.Enums;
 using MyWealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -66,6 +68,8 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
+        var tenant = await EnsureSampleTenantAsync();
+
         await EnsureUserAsync(
             email: "sa1@localhost",
             password: "SystemAdmin1!",
@@ -78,21 +82,35 @@ public class ApplicationDbContextInitialiser
             password: "TenantAdmin1!",
             displayName: "Tenant1 Admin1",
             role: UserRole.TenantAdmin,
-            tenantId: 1);
+            tenantId: tenant.Id);
 
         await EnsureUserAsync(
             email: "t1ad1@localhost",
             password: "Adviser1!",
             displayName: "Tenant1 Adviser1",
             role: UserRole.Adviser,
-            tenantId: 1);
+            tenantId: tenant.Id);
 
         await EnsureUserAsync(
             email: "t1c1@localhost",
             password: "Customer1!",
             displayName: "Tenant1 Customer1",
             role: UserRole.Customer,
-            tenantId: 1);
+            tenantId: tenant.Id);
+    }
+
+    private async Task<Tenant> EnsureSampleTenantAsync()
+    {
+        var existing = await _context.Tenants.FirstOrDefaultAsync();
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var tenant = Tenant.Create("Sample Tenant");
+        _context.Tenants.Add(tenant);
+        await _context.SaveChangesAsync();
+        return tenant;
     }
 
     private async Task EnsureUserAsync(

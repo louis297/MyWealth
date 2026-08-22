@@ -2,7 +2,7 @@
 title: Domain model
 status: review
 owner: ""
-last_updated: 2026-08-19
+last_updated: 2026-08-22
 related:
   - function-plan.md
   - glossary.md
@@ -18,7 +18,7 @@ related:
 
 Ubiquitous language and object model for MyWealth. This file owns **concepts**. Column-level detail lives in [database design](database-design.md). Product scope lives in the [function plan](function-plan.md). Shared words live in the [glossary](glossary.md).
 
-This is the target model for MVP. The Domain project still contains the Clean Architecture Todo sample (section 3). Replace those types when the first real aggregate lands.
+This is the target model for MVP. Section 3 is what currently exists in the Domain project. Section 4 is the full target.
 
 ## 1. Language
 
@@ -58,9 +58,9 @@ These match the current Domain project plus accepted ADRs. Change them only with
 - **Customer cannot authenticate in MVP.** Login for `Role = Customer` is deliberately disabled at the Identity / Application layer. This keeps the data model ready for a future Customer portal without requiring a schema change.
 - Financial writes that must stay consistent (post a Transaction and adjust the related Holding) stay inside the **Account** aggregate.
 
-## 3. Current model (starter — replace)
+## 3. Current model
 
-Still the Clean Architecture sample. Remove these types when the first real aggregate lands.
+The first real aggregate has landed. Identity users still live in Infrastructure (`ApplicationUser`); the Domain `Users` table is not implemented yet.
 
 ```mermaid
 classDiagram
@@ -71,39 +71,28 @@ classDiagram
     DateTimeOffset LastModified
     string LastModifiedBy
   }
-  class TodoList {
-    string Title
-    Colour Colour
-    Items
+  class Tenant {
+    string Name
+    bool IsEnabled
   }
-  class TodoItem {
-    int ListId
-    string Title
-    string Note
-    PriorityLevel Priority
-    bool Done
+  class UserRole {
+    <<enumeration>>
+    SystemAdmin
+    TenantAdmin
+    Adviser
+    Customer
   }
-  class Colour {
-    string Code
-  }
-  BaseAuditableEntity <|-- TodoList
-  BaseAuditableEntity <|-- TodoItem
-  TodoList "1" --> "*" TodoItem : Items
-  TodoList --> Colour
+  BaseAuditableEntity <|-- Tenant
 ```
 
 | Type | Kind | File |
 | --- | --- | --- |
-| `TodoList` | Aggregate root | `src/Domain/Entities/TodoList.cs` |
-| `TodoItem` | Entity | `src/Domain/Entities/TodoItem.cs` |
-| `Colour` | Value object | `src/Domain/ValueObjects/Colour.cs` |
-| `PriorityLevel` | Enum | `src/Domain/Enums/PriorityLevel.cs` |
-| `TodoItemCompletedEvent` | Domain event | `src/Domain/Events/TodoItemCompletedEvent.cs` |
-| `Roles.Administrator` | Constant | `src/Domain/Constants/Roles.cs` |
+| `Tenant` | Aggregate root | `src/Domain/Entities/Tenant.cs` |
+| `TenantCreatedEvent` / `TenantEnabledEvent` / `TenantDisabledEvent` | Domain event | `src/Domain/Events/` |
+| `UserRole` | Enum | `src/Domain/Enums/UserRole.cs` |
+| `Roles.*` | Constants | `src/Domain/Constants/Roles.cs` |
 
-`TodoItem.Done` setter raises `TodoItemCompletedEvent` when flipping to true. Handler: `LogTodoItemCompleted`.
-
-Replace `Roles.Administrator` with the real role constants in section 5 when Identity is wired to the real model.
+`Tenant.Create` raises `TenantCreatedEvent`. `Enable` / `Disable` raise the matching event only when the flag actually changes. No event handlers in this slice.
 
 ## 4. Target model (MVP)
 
@@ -212,7 +201,7 @@ Rules:
 
 | Aggregate root | Entities inside | Value objects | Key invariants | Domain events |
 | --- | --- | --- | --- | --- |
-| `Tenant` | — | — | Name required and unique among tenants | `TenantCreated`, `TenantDisabled` |
+| `Tenant` | — | — | Name required and unique among tenants | `TenantCreated`, `TenantEnabled`, `TenantDisabled` |
 | `User` | — | `TenantId` | Role-specific TenantId / AdviserId rules (see 4.1); Name and Email required | `UserCreated`, `UserDisabled`, `CustomerReassigned` |
 | `Account` | `Holding`, `Transaction` | `TenantId`, `Money`, `Instrument` | Currency fixed after creation; Closed accounts reject new transactions; Buy/Sell must adjust the related Holding inside the same aggregate | `AccountOpened`, `AccountClosed`, `TransactionPosted`, `HoldingChanged` |
 
@@ -247,6 +236,7 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
   - System Admin is not a child of Tenant
 - Domain events:
   - `TenantCreated`
+  - `TenantEnabled`
   - `TenantDisabled`
 - Application use cases:
   - Create / rename / enable / disable Tenant (System Admin)
@@ -495,6 +485,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
+| 2026-08-22 | Replaced §3 Todo sample with Tenant as the current model. Tenant events include `TenantEnabled`. |
 | 2026-08-21 | Locked Role storage Option B: Role is a property/column on `ApplicationUser`, not ASP.NET Identity Roles. Updated Identity vs domain section. |
 | 2026-08-19 | Finalised single-`User` design with four roles. Customer lives in the same table but authentication is explicitly disabled in MVP to keep the model ready for a future Customer portal. Updated Language, Modelling rules, 4.1, Type catalog and Identity section for consistency. |
 | 2026-08-18 | Replaced the placeholder target model with the MVP model from the function plan, glossary, and ADRs 0004–0007 |

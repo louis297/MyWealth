@@ -50,3 +50,39 @@ Content-Type: application/json
 }
 
 ###
+
+# GET /tenants
+GET {{Web_HostAddress}}/tenants?page=1&pageSize=20
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /tenants/{id}
+GET {{Web_HostAddress}}/tenants/1
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# POST /tenants
+POST {{Web_HostAddress}}/tenants
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Acme Wealth"
+}
+
+###
+
+# PUT /tenants/{id}
+PUT {{Web_HostAddress}}/tenants/1
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Acme Wealth Ltd",
+  "isEnabled": true
+}
+
+###

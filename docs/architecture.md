@@ -2,7 +2,7 @@
 title: Architecture
 status: draft
 owner: ""
-last_updated: 2026-08-20
+last_updated: 2026-08-22
 related:
   - function-plan.md
   - domain-model.md
@@ -157,7 +157,7 @@ dotnet run --project src/AppHost
 | Primary key | `int` Identity (`BaseEntity`) | Domain + EF configuration |
 | Validation | FluentValidation per command/query | next to each use case |
 | Mapping | AutoMapper | Application assembly |
-| Errors | `ValidationException`, `ForbiddenAccessException`, exception handler | Application + Web |
+| Errors | `ValidationException`, `NotFoundException`, `ForbiddenAccessException`, exception handler | Application + Web |
 | Observability | Aspire / OpenTelemetry service defaults | `ServiceDefaults` |
 | API docs | OpenAPI + Scalar | `Web/Program.cs` |
 | CORS | Allow any origin / header / method (development) | `Web/Program.cs` — **do not tighten until after MVP features are complete** |
@@ -198,5 +198,6 @@ Create an ADR when you change any of the following. Current defaults and their A
 | 2026-08-16 | Template created from the current starter snapshot |
 | 2026-08-20 | Light-touch update based on accepted ADRs 0001–0007 |
 | 2026-08-20 | Confirmed: frontend hosted in Aspire; MVP only Adviser Portal; forbid generic Frontend/Web names |
+| 2026-08-22 | Tenants slice: first Domain aggregate; `IApplicationDbContext.Tenants`; `/tenants` endpoints. Migrations still deferred. |
 | 2026-08-21 | Identity-auth slice: JwtBearer, custom `/auth` and `/users/me`, Todo/Weather sample removed |
 | 2026-08-20 | Seeding strategy clarified: most business data via direct SQL, Identity users + passwords via `UserManager` in backend; CORS production config deferred until after MVP |
