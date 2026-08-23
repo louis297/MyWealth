@@ -1,6 +1,6 @@
 ---
 title: "Advisers"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-23
 related:
@@ -209,13 +209,13 @@ None — API only for this slice. Adviser list / create / edit pages in the Advi
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] Domain `User` entity + invariants + optional events
-- [ ] EF configuration (FKs, unique Email, indexes) + EnsureCreated / seed updates
-- [ ] Commands / queries / validators (including transactional Create)
-- [ ] Endpoints under `/advisers`
-- [ ] Tests
-- [ ] Parent docs updated (domain-model, database-design, api-design, function-plan, features/README)
+- [x] Feature spec accepted
+- [x] Domain `User` entity + invariants + optional events
+- [x] EF configuration (FKs, unique Email, indexes) + EnsureCreated / seed updates
+- [x] Commands / queries / validators (including transactional Create)
+- [x] Endpoints under `/advisers`
+- [x] Tests
+- [x] Parent docs updated (domain-model, database-design, api-design, function-plan, features/README)
 
 ## 12. Open questions
 
@@ -231,4 +231,5 @@ None — API only for this slice. Adviser list / create / edit pages in the Advi
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | Implemented. Domain `User` introduced (all four roles). Create Adviser also creates Identity user in a transaction. Email globally unique (CI collation). Soft-disable via DELETE with Customer-reassignment guard. Seed links Domain Users to Identity; Customer seed is Domain-only (no login). |
 | 2026-08-23 | Created from discussion. Locked: global unique Email (Demo), caller-supplied password, DELETE soft-disable with Customer-reassignment guard, full User foundation, FK decisions for TenantId/AdviserId/IdentityUserId. |

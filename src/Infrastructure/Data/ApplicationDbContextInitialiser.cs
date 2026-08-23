@@ -70,33 +70,32 @@ public class ApplicationDbContextInitialiser
     {
         var tenant = await EnsureSampleTenantAsync();
 
-        await EnsureUserAsync(
+        await EnsureLoginUserAsync(
             email: "sa1@localhost",
             password: "SystemAdmin1!",
             displayName: "System Admin1",
             role: UserRole.SystemAdmin,
             tenantId: null);
 
-        await EnsureUserAsync(
+        await EnsureLoginUserAsync(
             email: "t1ta1@localhost",
             password: "TenantAdmin1!",
             displayName: "Tenant1 Admin1",
             role: UserRole.TenantAdmin,
             tenantId: tenant.Id);
 
-        await EnsureUserAsync(
+        var adviser = await EnsureLoginUserAsync(
             email: "t1ad1@localhost",
             password: "Adviser1!",
             displayName: "Tenant1 Adviser1",
             role: UserRole.Adviser,
             tenantId: tenant.Id);
 
-        await EnsureUserAsync(
+        await EnsureDomainCustomerAsync(
+            tenantId: tenant.Id,
+            adviserId: adviser.Id,
             email: "t1c1@localhost",
-            password: "Customer1!",
-            displayName: "Tenant1 Customer1",
-            role: UserRole.Customer,
-            tenantId: tenant.Id);
+            name: "Tenant1 Customer1");
     }
 
     private async Task<Tenant> EnsureSampleTenantAsync()
@@ -113,19 +112,31 @@ public class ApplicationDbContextInitialiser
         return tenant;
     }
 
-    private async Task EnsureUserAsync(
+    private async Task<User> EnsureLoginUserAsync(
         string email,
         string password,
         string displayName,
         UserRole role,
         int? tenantId)
     {
-        if (await _userManager.FindByEmailAsync(email) is not null)
+        var existing = await _context.DomainUsers.FirstOrDefaultAsync(u => u.Email == email);
+        if (existing is not null)
         {
-            return;
+            return existing;
         }
 
-        var user = new ApplicationUser
+        var user = role switch
+        {
+            UserRole.SystemAdmin => User.CreateSystemAdmin(displayName, email),
+            UserRole.TenantAdmin => User.CreateTenantAdmin(tenantId!.Value, displayName, email),
+            UserRole.Adviser => User.CreateAdviser(tenantId!.Value, displayName, email),
+            _ => throw new InvalidOperationException($"Cannot seed a login user for role {role}.")
+        };
+
+        _context.DomainUsers.Add(user);
+        await _context.SaveChangesAsync();
+
+        var identityUser = new ApplicationUser
         {
             UserName = email,
             Email = email,
@@ -136,12 +147,27 @@ public class ApplicationDbContextInitialiser
             IsEnabled = true
         };
 
-        var result = await _userManager.CreateAsync(user, password);
+        var result = await _userManager.CreateAsync(identityUser, password);
 
         if (!result.Succeeded)
         {
             throw new InvalidOperationException(
                 $"Failed to seed user '{email}': {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
+
+        user.LinkIdentity(identityUser.Id);
+        await _context.SaveChangesAsync();
+        return user;
+    }
+
+    private async Task EnsureDomainCustomerAsync(int tenantId, int adviserId, string email, string name)
+    {
+        if (await _context.DomainUsers.AnyAsync(u => u.Email == email))
+        {
+            return;
+        }
+
+        _context.DomainUsers.Add(User.CreateCustomer(tenantId, adviserId, name, email));
+        await _context.SaveChangesAsync();
     }
 }

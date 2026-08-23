@@ -2,7 +2,7 @@
 title: API design
 status: draft
 owner: ""
-last_updated: 2026-08-22
+last_updated: 2026-08-23
 related:
   - architecture.md
   - function-plan.md
@@ -11,6 +11,7 @@ related:
   - glossary.md
   - features/identity-auth.md
   - features/tenants.md
+  - features/advisers.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
   - adr/0004-money-as-decimal-with-currency.md
   - adr/0005-shared-database-tenantid-isolation.md
@@ -177,13 +178,38 @@ See feature spec: [tenants](features/tenants.md).
 
 ### 5.3 Advisers (TenantAdmin)
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET | `/advisers` | List (search + pagination) inside current tenant |
-| GET | `/advisers/{id}` | Detail |
-| POST | `/advisers` | Create Adviser + corresponding Identity user |
-| PUT | `/advisers/{id}` | Update details or enable/disable |
-| DELETE (soft) | `/advisers/{id}` | Disable. Must reassign all Customers first. |
+| Method | Route | Auth | Success | Errors | Description |
+| --- | --- | --- | --- | --- |
+| GET | `/advisers` | TenantAdmin | 200 + paginated list | 400, 401, 403 | List with pagination, `isEnabled` filter, `search` (Id, Name or Email) |
+| GET | `/advisers/{id}` | TenantAdmin | 200 + AdviserVm | 401, 403, 404 | Single Adviser (tenant-scoped; non-Adviser ids are 404) |
+| POST | `/advisers` | TenantAdmin | 201 + `{ "id": n }` | 400, 401, 403 | Create Domain User + Identity login. Email globally unique. |
+| PUT | `/advisers/{id}` | TenantAdmin | 204 | 400, 401, 403, 404 | Update Name and/or IsEnabled. Route `{id}` must match body `id`. Disabling fails if Customers are still assigned. |
+| DELETE | `/advisers/{id}` | TenantAdmin | 204 | 400, 401, 403, 404 | Soft-disable (`IsEnabled = false` on Domain User and Identity). Fails with 400 if any Customer still has this AdviserId. |
+
+Query parameters for list (same shape as Tenants, plus Email in search):
+
+- `page` (1-based, default 1, min 1)
+- `pageSize` (default 20, min 1, max 100)
+- `isEnabled` (optional bool)
+- `search` (optional string — matches Id exactly or Name/Email contains, case-insensitive)
+
+POST body:
+
+```json
+{
+  "name": "Jane Smith",
+  "email": "jane.smith@acme.com",
+  "password": "P@ssw0rd!"
+}
+```
+
+`AdviserVm`: `{ "id": 12, "name": "Jane Smith", "email": "jane.smith@acme.com", "isEnabled": true }`
+
+PUT is partial: omitted `name` / `isEnabled` stay unchanged. Supplying neither is 400. Re-enable is `PUT` with `isEnabled: true` and has no extra preconditions.
+
+Cross-tenant ids return **404** (never 403). TenantId is taken from the JWT, not the request body.
+
+See feature spec: [advisers](features/advisers.md).
 
 ### 5.4 Customers (TenantAdmin + Adviser)
 
@@ -324,6 +350,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | Advisers slice: `/advisers` CRUD + soft-disable for TenantAdmin. Paginated list (Id/Name/Email search), AdviserVm, transactional create with Identity user, DELETE customer-reassignment guard. Linked to advisers feature spec. |
 | 2026-08-22 | Tenants slice: `/tenants` CRUD for SystemAdmin, pagination shape, TenantVm, partial PUT. Linked to tenants feature spec. |
 | 2026-08-21 | Auth surface finalised: custom `/auth` routes, introduced `/users/me` + password endpoint, Customer login → 403. Reversed earlier “no /me” decision. Linked to identity-auth feature spec. |
 | 2026-08-20 | Full MVP design written from function-plan, domain-model, database-design and confirmed discussion points (soft-disable, nested holdings, SystemAdmin Option A, irreversible Account close, etc.) |

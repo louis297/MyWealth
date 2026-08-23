@@ -153,7 +153,7 @@ None — API only for this slice. Adviser Portal login / profile / change-passwo
 
 ## 12. Open questions
 
-- Whether a future Domain `User` table will own Role and ApplicationUser only mirrors it, or ApplicationUser remains the source of truth for auth. (Currently ApplicationUser.Role is the auth source of truth.)
+- Domain `User` now exists (Advisers slice) and carries `Role`. `ApplicationUser.Role` remains the source of truth for authentication claims; Domain `User.IdentityUserId` is the loose link.
 
 ## 13. Changelog
 

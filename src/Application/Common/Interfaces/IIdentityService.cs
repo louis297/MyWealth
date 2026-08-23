@@ -1,4 +1,5 @@
 ﻿using MyWealth.Application.Common.Models;
+using MyWealth.Domain.Enums;
 
 namespace MyWealth.Application.Common.Interfaces;
 
@@ -11,6 +12,16 @@ public interface IIdentityService
     Task<bool> AuthorizeAsync(string userId, string policyName);
 
     Task<(Result Result, string UserId)> CreateUserAsync(string userName, string password);
+
+    Task<(Result Result, string UserId)> CreateLoginUserAsync(
+        string email,
+        string password,
+        string displayName,
+        UserRole role,
+        int? tenantId,
+        CancellationToken cancellationToken = default);
+
+    Task<Result> SetEnabledAsync(string userId, bool isEnabled, CancellationToken cancellationToken = default);
 
     Task<Result> DeleteUserAsync(string userId);
 
