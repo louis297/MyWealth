@@ -195,6 +195,7 @@ Create an ADR when you change any of the following. Current defaults and their A
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | Customers slice: `/customers` endpoints (TenantAdmin + Adviser). Visibility by `AdviserId` for Adviser callers (resolved via Domain `Users.IdentityUserId`). Create is Domain-only; no Identity user. |
 | 2026-08-23 | Advisers slice: Domain `User` aggregate, `IApplicationDbContext.Users`, tenant query filter on Users, `/advisers` endpoints (TenantAdmin). Create wraps Domain + Identity in an execution-strategy transaction. |
 | 2026-08-16 | Template created from the current starter snapshot |
 | 2026-08-20 | Light-touch update based on accepted ADRs 0001–0007 |

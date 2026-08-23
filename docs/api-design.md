@@ -12,6 +12,7 @@ related:
   - features/identity-auth.md
   - features/tenants.md
   - features/advisers.md
+  - features/customers.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
   - adr/0004-money-as-decimal-with-currency.md
   - adr/0005-shared-database-tenantid-isolation.md
@@ -213,13 +214,38 @@ See feature spec: [advisers](features/advisers.md).
 
 ### 5.4 Customers (TenantAdmin + Adviser)
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET | `/customers` | List. Advisers see only their own Customers. Search + pagination. |
-| GET | `/customers/{id}` | Detail + account overview |
-| POST | `/customers` | Create. **`AdviserId` is required.** No login is enabled. |
-| PUT | `/customers/{id}` | Update details or reassign Adviser |
-| DELETE (soft) | `/customers/{id}` | Disable (`IsEnabled = false`). No physical delete. |
+| Method | Route | Auth | Success | Errors | Description |
+| --- | --- | --- | --- | --- |
+| GET | `/customers` | TenantAdmin, Adviser | 200 + paginated list | 400, 401, 403 | List with pagination, `isEnabled` filter, `search` (Id, Name or Email). Advisers see only their own Customers. |
+| GET | `/customers/{id}` | TenantAdmin, Adviser | 200 + CustomerVm | 401, 403, 404 | Single Customer (visibility-scoped; out-of-scope and non-Customer ids are 404). Includes assigned Adviser id and name. No Account overview in this slice. |
+| POST | `/customers` | TenantAdmin, Adviser | 201 + `{ "id": n }` | 400, 401, 403 | Create Domain User only (no Identity login). Email globally unique. `AdviserId` required. |
+| PUT | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Update Name and/or IsEnabled and/or reassign AdviserId. Route `{id}` must match body `id`. |
+| DELETE | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Soft-disable (`IsEnabled = false`). No Account-existence check in this slice. |
+
+Query parameters for list (same shape as Tenants / Advisers):
+
+- `page` (1-based, default 1, min 1)
+- `pageSize` (default 20, min 1, max 100)
+- `isEnabled` (optional bool)
+- `search` (optional string — matches Id exactly or Name/Email contains, case-insensitive)
+
+POST body:
+
+```json
+{
+  "name": "Zhang San",
+  "email": "zhangsan@example.com",
+  "adviserId": 12
+}
+```
+
+`CustomerVm`: `{ "id": 42, "name": "Zhang San", "email": "zhangsan@example.com", "isEnabled": true, "adviserId": 12, "adviserName": "Jane Smith" }`
+
+PUT is partial: omitted `name` / `isEnabled` / `adviserId` stay unchanged. Supplying none is 400. Re-enable is `PUT` with `isEnabled: true` and has no extra preconditions.
+
+On create and reassignment, `adviserId` must reference an enabled Adviser in the same tenant. An Adviser caller may only set `adviserId` to their own Domain User id (400 otherwise). Out-of-scope or cross-tenant Customer ids return **404** (never 403). TenantId is taken from the JWT, not the request body.
+
+See feature spec: [customers](features/customers.md).
 
 ### 5.5 Accounts
 
@@ -350,6 +376,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | Customers slice: `/customers` CRUD + soft-disable for TenantAdmin and Adviser. Paginated list (Id/Name/Email search), CustomerVm with adviser summary, Domain-only create (no Identity), Adviser self-assignment and 404 visibility scoping. Linked to customers feature spec. |
 | 2026-08-23 | Advisers slice: `/advisers` CRUD + soft-disable for TenantAdmin. Paginated list (Id/Name/Email search), AdviserVm, transactional create with Identity user, DELETE customer-reassignment guard. Linked to advisers feature spec. |
 | 2026-08-22 | Tenants slice: `/tenants` CRUD for SystemAdmin, pagination shape, TenantVm, partial PUT. Linked to tenants feature spec. |
 | 2026-08-21 | Auth surface finalised: custom `/auth` routes, introduced `/users/me` + password endpoint, Customer login → 403. Reversed earlier “no /me” decision. Linked to identity-auth feature spec. |

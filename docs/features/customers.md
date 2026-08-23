@@ -1,6 +1,6 @@
 ---
 title: "Customers"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-23
 related:
@@ -210,12 +210,12 @@ None — API only for this slice. Customer list / create / edit pages in the Adv
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] Confirm Domain `User` invariants already cover Customer cases (no new entity)
-- [ ] Commands / queries / validators
-- [ ] Endpoints under `/customers`
-- [ ] Tests
-- [ ] Parent docs updated (domain-model if needed, api-design, function-plan, features/README)
+- [x] Feature spec accepted
+- [x] Confirm Domain `User` invariants already cover Customer cases (no new entity)
+- [x] Commands / queries / validators
+- [x] Endpoints under `/customers`
+- [x] Tests
+- [x] Parent docs updated (domain-model if needed, api-design, function-plan, features/README)
 
 ## 12. Open questions
 
@@ -230,4 +230,5 @@ None — API only for this slice. Customer list / create / edit pages in the Adv
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | Implemented. TenantAdmin + Adviser CRUD under `/customers`. Create is Domain-only (no Identity). Advisers see and assign only their own Customers (404 for others; 400 if assigning to someone else). Soft-disable via DELETE with no Account guard. `CustomerReassignedEvent` on AdviserId change. |
 | 2026-08-23 | Created from discussion. Locked: Adviser self-assignment only, no Account guard on disable (deferred), global unique Email, no Identity user for Customer, soft-disable via DELETE, visibility scoping (TenantAdmin full / Adviser own only). |
