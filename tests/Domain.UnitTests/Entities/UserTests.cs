@@ -133,6 +133,54 @@ public class UserTests
     }
 
     [Test]
+    public void ReassignAdviser_UpdatesId_AndRaisesEvent()
+    {
+        var user = User.CreateCustomer(1, 12, "Zhang", "zhang@example.com");
+        user.ClearDomainEvents();
+
+        user.ReassignAdviser(34);
+
+        user.AdviserId.ShouldBe(34);
+        user.DomainEvents.OfType<CustomerReassignedEvent>().Single().User.ShouldBe(user);
+    }
+
+    [Test]
+    public void ReassignAdviser_WhenUnchanged_DoesNotRaiseEvent()
+    {
+        var user = User.CreateCustomer(1, 12, "Zhang", "zhang@example.com");
+        user.ClearDomainEvents();
+
+        user.ReassignAdviser(12);
+
+        user.AdviserId.ShouldBe(12);
+        user.DomainEvents.ShouldBeEmpty();
+    }
+
+    [TestCase(0)]
+    [TestCase(-1)]
+    public void ReassignAdviser_RejectsMissingAdviser(int adviserId)
+    {
+        var user = User.CreateCustomer(1, 12, "Zhang", "zhang@example.com");
+
+        var action = () => user.ReassignAdviser(adviserId);
+
+        Should.Throw<ArgumentException>(action).ParamName.ShouldBe("adviserId");
+        user.AdviserId.ShouldBe(12);
+    }
+
+    [Test]
+    public void ReassignAdviser_OnNonCustomer_Throws()
+    {
+        var user = User.CreateAdviser(1, "Jane", "jane@acme.com");
+
+        var action = () => user.ReassignAdviser(34);
+
+        Should.Throw<InvalidOperationException>(action)
+            .Message.ShouldContain("customers");
+        user.AdviserId.ShouldBeNull();
+    }
+
+    [Test]
     public void Rename_UpdatesTrimmedName()
     {
         var user = User.CreateAdviser(1, "Jane", "jane@acme.com");

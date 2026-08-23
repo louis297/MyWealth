@@ -39,6 +39,27 @@ public class User : BaseAuditableEntity
 
     public void Rename(string name) => SetName(name);
 
+    public void ReassignAdviser(int adviserId)
+    {
+        if (Role != UserRole.Customer)
+        {
+            throw new InvalidOperationException("Only customers can be reassigned.");
+        }
+
+        if (adviserId <= 0)
+        {
+            throw new ArgumentException("Adviser is required.", nameof(adviserId));
+        }
+
+        if (AdviserId == adviserId)
+        {
+            return;
+        }
+
+        AdviserId = adviserId;
+        AddDomainEvent(new CustomerReassignedEvent(this));
+    }
+
     public void Enable()
     {
         if (IsEnabled)
