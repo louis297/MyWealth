@@ -2,7 +2,7 @@
 title: Domain model
 status: review
 owner: ""
-last_updated: 2026-08-22
+last_updated: 2026-08-23
 related:
   - function-plan.md
   - glossary.md
@@ -60,7 +60,7 @@ These match the current Domain project plus accepted ADRs. Change them only with
 
 ## 3. Current model
 
-The first real aggregate has landed. Identity users still live in Infrastructure (`ApplicationUser`); the Domain `Users` table is not implemented yet.
+Tenant and User aggregates have landed. Login still lives in Infrastructure (`ApplicationUser`); Domain `User` links to it via `IdentityUserId` (no hard FK).
 
 ```mermaid
 classDiagram
@@ -75,6 +75,15 @@ classDiagram
     string Name
     bool IsEnabled
   }
+  class User {
+    int? TenantId
+    string Name
+    string Email
+    bool IsEnabled
+    UserRole Role
+    int? AdviserId
+    string IdentityUserId
+  }
   class UserRole {
     <<enumeration>>
     SystemAdmin
@@ -83,16 +92,24 @@ classDiagram
     Customer
   }
   BaseAuditableEntity <|-- Tenant
+  BaseAuditableEntity <|-- User
+  User --> UserRole : has
+  Tenant "1" --> "*" User
+  User "1" --> "*" User : AdviserId
 ```
 
 | Type | Kind | File |
 | --- | --- | --- |
 | `Tenant` | Aggregate root | `src/Domain/Entities/Tenant.cs` |
 | `TenantCreatedEvent` / `TenantEnabledEvent` / `TenantDisabledEvent` | Domain event | `src/Domain/Events/` |
+| `User` | Aggregate root | `src/Domain/Entities/User.cs` |
+| `UserCreatedEvent` / `UserEnabledEvent` / `UserDisabledEvent` | Domain event | `src/Domain/Events/` |
 | `UserRole` | Enum | `src/Domain/Enums/UserRole.cs` |
 | `Roles.*` | Constants | `src/Domain/Constants/Roles.cs` |
 
-`Tenant.Create` raises `TenantCreatedEvent`. `Enable` / `Disable` raise the matching event only when the flag actually changes. No event handlers in this slice.
+`Tenant.Create` raises `TenantCreatedEvent`. `Enable` / `Disable` raise the matching event only when the flag actually changes.
+
+`User` factories cover all four roles. Advisers are managed via `/advisers` (TenantAdmin). Customer rows can be stored (used by the Adviser disable guard and seed) but Customer CRUD is the next slice. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. No event handlers in this slice.
 
 ## 4. Target model (MVP)
 
@@ -271,7 +288,7 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
   - Creating a User with a login-capable role (SystemAdmin, TenantAdmin, Adviser) also creates the corresponding Identity user in Infrastructure
   - Creating a Customer does **not** enable login in MVP
 - Persistence notes:
-  - Table `Users`. Indexes on `(TenantId, Role)`, `(AdviserId)`. Email uniqueness policy to be decided (global or per-tenant)
+  - Table `Users`. Indexes on `(TenantId, Role)`, `(AdviserId)`. Email is **globally unique** (case-insensitive; Demo simplification aligned with ASP.NET Identity)
 
 ### Account
 
@@ -451,12 +468,12 @@ String names of `UserRole`, used in JWT role claims and `[Authorize(Roles = …)
 | Login, password, email-as-credential, JWT | `Infrastructure/Identity/ApplicationUser` + custom `/auth` endpoints ([ADR 0006](adr/0006-email-password-jwt-authentication.md), [identity-auth](features/identity-auth.md)) | not referenced directly |
 | "Who is acting" | `IUser` (`src/Application`); tenant from JWT claim or header ([ADR 0005](adr/0005-shared-database-tenantid-isolation.md)) | `UserId`, `TenantId`, `CreatedBy` / `LastModifiedBy` |
 | Login-capable role | **`ApplicationUser.Role` property/column** (Option B). Not ASP.NET Identity Roles (`AspNetRoles`). JWT Role claim is read from this property. | `Roles.*` constants / `UserRole` enum |
-| Person in the firm (any of the four roles) | Domain `User` (when introduced) or currently mirrored on `ApplicationUser` | `User.Id`, `User.Role`, `User.AdviserId` |
+| Person in the firm (any of the four roles) | Domain `User` | `User.Id`, `User.Role`, `User.AdviserId` |
 | Customer login | Disabled in MVP by Application / Identity policy (check `ApplicationUser.Role == Customer` → 403) | Will be enabled later for Customer portal without changing the domain model |
 | Authorization / data scope | `[Authorize]` + handlers that filter by tenant and (for Advisers) `AdviserId` | not a domain service |
 | Profile name / password change | Identity / Application (`/users/me`, `/users/me/password`) | not a domain aggregate |
 
-**Role storage (locked 2026-08-21):** Role is a column on `ApplicationUser`, not an entry in `AspNetRoles` / `AspNetUserRoles`. This matches the domain language (“all four roles live in the same User table”) and avoids a parallel role system. A future Domain `Users` table will carry the same `Role` value; `ApplicationUser` remains the source of truth for authentication claims until that table is fully wired.
+**Role storage (locked 2026-08-21):** Role is a column on `ApplicationUser`, not an entry in `AspNetRoles` / `AspNetUserRoles`. This matches the domain language (“all four roles live in the same User table”) and avoids a parallel role system. Domain `Users` now carries the same `Role` value. `ApplicationUser` remains the source of truth for authentication claims; Domain `User.IdentityUserId` is the loose link to `AspNetUsers.Id`.
 
 Do not put `ApplicationUser` navigation properties on domain entities. The domain `User` is linked to Identity by a string `UserId` (or by matching Email) when needed.
 
@@ -471,6 +488,7 @@ Decided by existing docs (do not re-open without an ADR or a function-plan chang
 - Customer cannot log in during MVP (login policy is disabled for `Role = Customer`)
 - Holdings live inside the Account aggregate so a post can adjust quantity and cost basis in one consistency boundary
 - Custom transaction categories and net-worth snapshots are out of MVP
+- Email uniqueness is **global** (case-insensitive) — Advisers feature / Demo simplification matching Identity
 
 Still open (resolve in a feature spec or a follow-up edit of this file):
 
@@ -480,11 +498,13 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 - Is `Interest` ever an outflow (loan interest)? MVP treats it as inflow.
 - When Customer portal is introduced, should existing Customer rows automatically receive login capability, or require an explicit “enable portal access” action?
 - Glossary still needs a small alignment pass (Customer is one of the four roles living in the User table).
+- Email uniqueness is **global** (Demo). Revisit per-tenant uniqueness only with an ADR if login starts requiring tenant context.
 
 ## 8. Changelog
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | §3 current model includes User. Email uniqueness locked as global (Demo). Advisers slice ships Domain User + Identity link via `IdentityUserId`. |
 | 2026-08-22 | Replaced §3 Todo sample with Tenant as the current model. Tenant events include `TenantEnabled`. |
 | 2026-08-21 | Locked Role storage Option B: Role is a property/column on `ApplicationUser`, not ASP.NET Identity Roles. Updated Identity vs domain section. |
 | 2026-08-19 | Finalised single-`User` design with four roles. Customer lives in the same table but authentication is explicitly disabled in MVP to keep the model ready for a future Customer portal. Updated Language, Modelling rules, 4.1, Type catalog and Identity section for consistency. |

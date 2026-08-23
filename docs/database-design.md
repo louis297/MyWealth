@@ -2,7 +2,7 @@
 title: Database design
 status: review
 owner: ""
-last_updated: 2026-08-22
+last_updated: 2026-08-23
 related:
   - domain-model.md
   - architecture.md
@@ -160,7 +160,7 @@ erDiagram
 | Table | Aggregate / Kind | PK | Important FKs | Indexes | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `Tenants` | Aggregate root | `Id` | — | Unique `Name` (CI collation `SQL_Latin1_General_CP1_CI_AS`) | Platform-level. No TenantId column. |
-| `Users` | Aggregate root | `Id` | `TenantId` → Tenants (nullable), `AdviserId` → Users (nullable) | `(TenantId, Role)`, `AdviserId`, unique `Email` (or unique per tenant) | All four roles. SystemAdmin has `TenantId = null`. |
+| `Users` | Aggregate root | `Id` | `TenantId` → Tenants (nullable, RESTRICT), `AdviserId` → Users (nullable, RESTRICT). No FK on `IdentityUserId`. | `(TenantId, Role)`, `AdviserId`, unique `Email` (CI collation `SQL_Latin1_General_CP1_CI_AS`), unique filtered `IdentityUserId` where not null | All four roles. SystemAdmin has `TenantId = null`. **Shipped with Advisers.** |
 | `Accounts` | Aggregate root | `Id` | `TenantId` → Tenants, `CustomerId` → Users | `(TenantId, CustomerId)`, `(CustomerId)` | Currency fixed after insert. |
 | `Holdings` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts | `(TenantId, AccountId)`, `(AccountId)` | Owned Instrument + Money (CostBasis). |
 | `Transactions` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts, `HoldingId` → Holdings (nullable) | `(TenantId, AccountId, BookedOn)`, `(AccountId, Type)`, `(HoldingId)` | Append-only in MVP. |
@@ -187,7 +187,7 @@ ASP.NET Identity tables: `AspNetUsers` is extended via `ApplicationUser` with bu
 | Id | int identity | no | PK |
 | TenantId | int | yes | Null only for SystemAdmin. FK → Tenants |
 | Name | nvarchar(200) | no | |
-| Email | nvarchar(256) | no | Used for login when role allows it |
+| Email | nvarchar(256) | no | Globally unique (CI collation). Used for login when role allows it |
 | IsEnabled | bit | no | Default 1 |
 | Role | int | no | Enum: 0=SystemAdmin, 1=TenantAdmin, 2=Adviser, 3=Customer |
 | AdviserId | int | yes | Required when Role=Customer. FK → Users |
@@ -259,7 +259,7 @@ Recommended check constraints:
 | --- | --- | --- |
 | Users | `(TenantId, Role)` | List Advisers / Customers inside a tenant |
 | Users | `AdviserId` | Find Customers of an Adviser |
-| Users | unique `Email` (or `(TenantId, Email)`) | Login / uniqueness |
+| Users | unique `Email` (global, CI) | Login / uniqueness (Demo) |
 | Accounts | `(TenantId, CustomerId)` | List accounts of a Customer |
 | Holdings | `(TenantId, AccountId)` | Load holdings with the Account aggregate |
 | Transactions | `(TenantId, AccountId, BookedOn)` | Date-range queries and recent activity |
@@ -272,7 +272,7 @@ All `TenantId` columns should also be covered by the composite indexes above so 
 
 - **Money** and **Instrument** are configured as owned types (`OwnsOne`).
 - `UserRole`, `AccountType`, `AccountStatus`, `TransactionType` are stored as `int` (or string if preferred later).
-- Global query filters on `TenantId` are applied in `ApplicationDbContext` for `Users` (with care for SystemAdmin), `Accounts`, `Holdings`, `Transactions`.
+- Global query filters on `TenantId` are applied in `ApplicationDbContext` for `Users` (no filter when the caller has no TenantId — seed and SystemAdmin), `Accounts`, `Holdings`, `Transactions`. Email uniqueness queries must `IgnoreQueryFilters()` because uniqueness is global.
 - `Holdings` and `Transactions` do **not** need their own `DbSet<>` on `IApplicationDbContext` if they are only accessed through the Account aggregate for writes. They may still be exposed for efficient read-side queries.
 - `IdentityUserId` on `Users` is the bridge to `AspNetUsers`. Creating a login-capable User (SystemAdmin / TenantAdmin / Adviser) also creates the corresponding Identity user in Infrastructure.
 
@@ -280,10 +280,10 @@ All `TenantId` columns should also be covered by the composite indexes above so 
 
 | Data | When | Notes |
 | --- | --- | --- |
-| One sample Tenant | Development seed | Created first so seeded TenantAdmin / Adviser / Customer can store its `Id` on `ApplicationUser.TenantId` (no FK in this slice) |
-| SystemAdmin user + Identity account | Development seed | Platform operator |
-| TenantAdmin + Adviser for the sample Tenant | Development seed | |
-| A few Customers under the Adviser | Development seed | No login |
+| One sample Tenant | Development seed | Created first so seeded TenantAdmin / Adviser / Customer can store its `Id` |
+| SystemAdmin Domain User + Identity account | Development seed | Linked via `IdentityUserId`. Platform operator |
+| TenantAdmin + Adviser Domain Users + Identity for the sample Tenant | Development seed | Linked via `IdentityUserId` |
+| One Customer under the seeded Adviser | Development seed | Domain `User` only — no Identity login |
 | Optional sample Accounts / Holdings / Transactions | Development seed | For UI demos |
 
 Do not seed another tenant’s real financial data.  
@@ -299,20 +299,27 @@ DbSet<User> Users { get; }
 DbSet<Account> Accounts { get; }
 // Holdings / Transactions may be omitted if only loaded via Account
 Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken);
 ```
+
+`ApplicationDbContext` exposes Domain users as `DomainUsers` so it does not hide Identity's `Users` (`DbSet<ApplicationUser>`). `IApplicationDbContext.Users` is the Domain set. Table name is `Users`.
 
 ## 8. Open questions
 
-- Migrations: introduce with the first real aggregate, or earlier?
-- Email uniqueness: global or per-tenant?
-- Should `IdentityUserId` be required for Advisers / TenantAdmins, or can it be filled asynchronously?
+- Migrations: introduce with the first real aggregate, or earlier? (Still deferred; EnsureCreated retained.)
+- Should `IdentityUserId` be required for Advisers / TenantAdmins, or can it be filled asynchronously? (Create Adviser sets it in the same transaction.)
 - Do we need a separate `Currencies` lookup table, or is free-form ISO 4217 code enough for MVP?
 - Soft-delete vs hard-delete for Customers and Accounts in later phases?
+
+Resolved:
+
+- Email uniqueness is **global** (case-insensitive). Demo simplification matching ASP.NET Identity `RequireUniqueEmail`. Per-tenant uniqueness would need an ADR if login starts requiring tenant context.
 
 ## 9. Changelog
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | Users table shipped with Advisers: unique Email (CI), TenantId/AdviserId FKs (RESTRICT), no FK on IdentityUserId, tenant query filter, seed Domain+Identity for login roles and Domain-only Customer. Email uniqueness locked global. |
 | 2026-08-22 | Tenants table shipped: unique Name via CI collation + unique index. Sample Tenant is seeded before Identity users. Migrations still deferred (`EnsureCreated`). Explicit note: `ApplicationUser.TenantId` has **no FK** to Tenants (by design; real FK lives on Domain `Users`). |
 | 2026-08-21 | Locked Role storage Option B: Role is a column on ApplicationUser; AspNetRoles/AspNetUserRoles are not used for the four business roles. |
 | 2026-08-19 | Removed obsolete Todo starter schema (§4). Renumbered sections. Clarified that currency reference data is not seeded in MVP. |
