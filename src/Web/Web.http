@@ -130,3 +130,48 @@ DELETE {{Web_HostAddress}}/advisers/1
 Authorization: Bearer {{BearerToken}}
 
 ###
+
+# GET /customers
+GET {{Web_HostAddress}}/customers?page=1&pageSize=20
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /customers/{id}
+GET {{Web_HostAddress}}/customers/1
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# POST /customers
+POST {{Web_HostAddress}}/customers
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Zhang San",
+  "email": "zhangsan@example.com",
+  "adviserId": 12
+}
+
+###
+
+# PUT /customers/{id}
+PUT {{Web_HostAddress}}/customers/1
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Zhang San",
+  "isEnabled": true,
+  "adviserId": 12
+}
+
+###
+
+# DELETE /customers/{id}
+DELETE {{Web_HostAddress}}/customers/1
+Authorization: Bearer {{BearerToken}}
+
+###
