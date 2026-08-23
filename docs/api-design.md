@@ -364,19 +364,87 @@ See feature spec: [holdings](features/holdings.md).
 
 ### 5.7 Transactions
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET | `/transactions` | Filter by AccountId, date range, Type + pagination |
-| POST | `/transactions` | Create a transaction |
+| Method | Route | Auth | Success | Errors | Description |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/transactions` | TenantAdmin, Adviser | 200 + paginated list | 401, 403 | List with pagination and filters (accountId, from, to, type). |
+| GET | `/transactions/{id}` | TenantAdmin, Adviser | 200 + TransactionVm | 401, 403, 404 | Single transaction (visibility-scoped). |
+| POST | `/transactions` | TenantAdmin, Adviser | 201 + `{ "id": n }` | 400, 401, 403, 404 | Create transaction (returns id only). |
+
+Query parameters for list:
+
+- `page` (1-based, default 1)
+- `pageSize` (default 20, max 100)
+- `accountId` (optional int)
+- `from` (optional date – BookedOn ≥)
+- `to` (optional date – BookedOn ≤)
+- `type` (optional: `Buy` \| `Sell` \| `TransferIn` \| `TransferOut` \| `Dividend` \| `Interest`)
 
 Rules:
 
 - Append-only: no PUT, no DELETE.
 - On success return only the new id (`201 Created`). The client re-queries the Holding if it needs the updated position.
-- Buy / Sell require `HoldingId` + `Quantity` and automatically adjust the Holding’s quantity and average cost basis inside the Account aggregate.
-- TransferIn / TransferOut / Dividend / Interest are cash-only and do not touch Holdings.
+- Amount is always positive; direction is determined solely by `Type`.
+- Buy / Sell require `HoldingId` + `Quantity` (> 0) and automatically adjust the Holding’s quantity and average cost basis inside the Account aggregate.
+- TransferIn / TransferOut / Dividend / Interest are cash-only (`HoldingId` must be null) and do not touch Holdings.
 - Cannot post to a Closed account.
 - `Amount.Currency` must equal the Account’s currency.
+- `BookedOn` may be a future date.
+- Visibility follows the parent Account exactly.
+- A Holding that still has historical Transactions cannot be physically deleted (guard delivered by this feature).
+
+POST body (Buy example):
+
+```json
+{
+  "accountId": 17,
+  "holdingId": 5,
+  "bookedOn": "2026-08-20",
+  "type": "Buy",
+  "amount": {
+    "amount": 18500.00,
+    "currency": "NZD"
+  },
+  "quantity": 100,
+  "note": "Initial purchase"
+}
+```
+
+POST body (Dividend example):
+
+```json
+{
+  "accountId": 17,
+  "bookedOn": "2026-08-20",
+  "type": "Dividend",
+  "amount": {
+    "amount": 120.50,
+    "currency": "NZD"
+  },
+  "note": "Q2 dividend"
+}
+```
+
+`TransactionVm`:
+
+```json
+{
+  "id": 42,
+  "accountId": 17,
+  "holdingId": 5,
+  "bookedOn": "2026-08-20",
+  "type": "Buy",
+  "amount": {
+    "amount": 18500.00,
+    "currency": "NZD"
+  },
+  "quantity": 100,
+  "note": "Initial purchase"
+}
+```
+
+For cash-only types `holdingId` and `quantity` are null.
+
+See feature spec: [transactions](features/transactions.md).
 
 ### 5.8 Dashboard
 

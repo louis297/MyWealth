@@ -36,8 +36,8 @@ When generating an implementation plan for a feature:
 | [advisers](advisers.md) | accepted | Phase 1 | TenantAdmin manages Advisers. Introduces Domain User. Create also creates Identity user. Soft-disable (DELETE) requires no remaining Customers. Email globally unique (Demo). |
 | [customers](customers.md) | accepted | Phase 2 | TenantAdmin + Adviser. Must bind to Adviser. No Identity user. Adviser can only manage/assign own Customers. Soft-disable (DELETE). Email globally unique. Account-existence guard deferred to Accounts feature. |
 | [accounts](accounts.md) | draft | Phase 2 | TenantAdmin + Adviser. Create / list / get / update Name+Type / permanent close. No forced clear of Holdings/Transactions. Currency immutable. Optional customerId filter. |
-| [holdings](holdings.md) | draft | Phase 3 | Nested under `/accounts/{accountId}/holdings`. Create/list/get/update/delete. Quantity ≥ 0 (incl. zero). CostBasis.Currency immutable & must match Account. No list search/pagination. Physical DELETE allowed now; “no delete if historical Tx” guard deferred to Transactions. API only. |
-| [transactions](transactions.md) | draft | Phase 3 | Create + auto-adjust Holding quantity & cost basis (core write path). |
+| [holdings](holdings.md) | draft | Phase 3 | Nested under `/accounts/{accountId}/holdings`. Create/list/get/update/delete. Quantity ≥ 0 (incl. zero). CostBasis.Currency immutable & must match Account. No list search/pagination. Physical DELETE allowed; “no delete if historical Tx” guard is delivered by the Transactions feature. API only. |
+| [transactions](transactions.md) | draft | Phase 3 | Top-level `/transactions`. Append-only create + list/get. Buy/Sell auto-adjust Holding (average cost) inside Account aggregate. Cash types leave Holdings untouched. Amount always > 0. Holding-delete guard (no delete if historical Tx) delivered here. API only. |
 | [dashboard](dashboard.md) | draft | Phase 4 | Net Worth + asset allocation (read models). |
 | [audit-log](audit-log.md) | draft | Phase 4 | View audit entries. Can be deferred. |
 
