@@ -103,13 +103,13 @@ classDiagram
 | `Tenant` | Aggregate root | `src/Domain/Entities/Tenant.cs` |
 | `TenantCreatedEvent` / `TenantEnabledEvent` / `TenantDisabledEvent` | Domain event | `src/Domain/Events/` |
 | `User` | Aggregate root | `src/Domain/Entities/User.cs` |
-| `UserCreatedEvent` / `UserEnabledEvent` / `UserDisabledEvent` | Domain event | `src/Domain/Events/` |
+| `UserCreatedEvent` / `UserEnabledEvent` / `UserDisabledEvent` / `CustomerReassignedEvent` | Domain event | `src/Domain/Events/` |
 | `UserRole` | Enum | `src/Domain/Enums/UserRole.cs` |
 | `Roles.*` | Constants | `src/Domain/Constants/Roles.cs` |
 
 `Tenant.Create` raises `TenantCreatedEvent`. `Enable` / `Disable` raise the matching event only when the flag actually changes.
 
-`User` factories cover all four roles. Advisers are managed via `/advisers` (TenantAdmin). Customer rows can be stored (used by the Adviser disable guard and seed) but Customer CRUD is the next slice. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. No event handlers in this slice.
+`User` factories cover all four roles. Advisers are managed via `/advisers` (TenantAdmin). Customers are managed via `/customers` (TenantAdmin + Adviser; Advisers only see and assign their own). Creating a Customer does not create an Identity login. `ReassignAdviser` raises `CustomerReassignedEvent` when `AdviserId` changes. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. No event handlers in this slice.
 
 ## 4. Target model (MVP)
 
@@ -504,6 +504,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | §3 Customer CRUD shipped via `/customers`. `CustomerReassignedEvent` added. Creating a Customer remains Domain-only (no Identity). |
 | 2026-08-23 | §3 current model includes User. Email uniqueness locked as global (Demo). Advisers slice ships Domain User + Identity link via `IdentityUserId`. |
 | 2026-08-22 | Replaced §3 Todo sample with Tenant as the current model. Tenant events include `TenantEnabled`. |
 | 2026-08-21 | Locked Role storage Option B: Role is a property/column on `ApplicationUser`, not ASP.NET Identity Roles. Updated Identity vs domain section. |

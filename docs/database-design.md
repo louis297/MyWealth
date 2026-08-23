@@ -319,6 +319,7 @@ Resolved:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-23 | Customers slice: no schema change. Inserts `Role = Customer` rows into the existing Users table (AdviserId required, IdentityUserId null). |
 | 2026-08-23 | Users table shipped with Advisers: unique Email (CI), TenantId/AdviserId FKs (RESTRICT), no FK on IdentityUserId, tenant query filter, seed Domain+Identity for login roles and Domain-only Customer. Email uniqueness locked global. |
 | 2026-08-22 | Tenants table shipped: unique Name via CI collation + unique index. Sample Tenant is seeded before Identity users. Migrations still deferred (`EnsureCreated`). Explicit note: `ApplicationUser.TenantId` has **no FK** to Tenants (by design; real FK lives on Domain `Users`). |
 | 2026-08-21 | Locked Role storage Option B: Role is a column on ApplicationUser; AspNetRoles/AspNetUserRoles are not used for the four business roles. |
