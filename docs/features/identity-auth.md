@@ -34,7 +34,7 @@ Any login-capable user (SystemAdmin, TenantAdmin, Adviser) can sign in with emai
 
 **Out**
 
-- User registration (handled by the `advisers`, `customers`, and `tenants` features when those entities are created)
+- User registration (handled by the `tenant-admins`, `advisers`, and `customers` features when those entities are created)
 - Password reset / forgot-password flow
 - Refresh tokens
 - Third-party / social login

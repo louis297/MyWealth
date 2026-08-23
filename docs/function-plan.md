@@ -2,7 +2,7 @@
 
 **Version**: v0.1  
 **Status**: Draft  
-**Last Updated**: 2026-08-23  
+**Last Updated**: 2026-08-24  
 
 ---
 
@@ -49,6 +49,10 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 | Tenant List                | Paginated list with IsEnabled filter and Id/Name search | API only (`/tenants`) — no MVP UI | System Admin                        |
 | Create Tenant              | Create a firm. Does not create a TenantAdmin    | API only                         | System Admin                        |
 | Edit Tenant                | Rename or enable/disable                         | API only                         | System Admin                        |
+| Tenant Admin List          | Paginated list with IsEnabled / TenantId filters and Id/Name/Email search | API only (`/tenant-admins`) — no MVP UI | System Admin |
+| Create Tenant Admin        | Create a TenantAdmin + login for an enabled Tenant | API only                         | System Admin                        |
+| Edit Tenant Admin          | Rename or enable/disable                         | API only                         | System Admin                        |
+| Disable Tenant Admin       | Soft-disable. Last admin of a Tenant is allowed  | API only                         | System Admin                        |
 
 ---
 
