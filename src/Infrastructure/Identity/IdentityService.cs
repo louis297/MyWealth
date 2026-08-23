@@ -48,6 +48,49 @@ public class IdentityService : IIdentityService
         return (result.ToApplicationResult(), user.Id);
     }
 
+    public async Task<(Result Result, string UserId)> CreateLoginUserAsync(
+        string email,
+        string password,
+        string displayName,
+        UserRole role,
+        int? tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            DisplayName = displayName,
+            Role = role,
+            TenantId = tenantId,
+            IsEnabled = true
+        };
+
+        var result = await _userManager.CreateAsync(user, password);
+
+        return (result.ToApplicationResult(), user.Id);
+    }
+
+    public async Task<Result> SetEnabledAsync(
+        string userId,
+        bool isEnabled,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return Result.Failure(["User not found."]);
+        }
+
+        user.IsEnabled = isEnabled;
+
+        var result = await _userManager.UpdateAsync(user);
+
+        return result.ToApplicationResult();
+    }
+
     public async Task<bool> IsInRoleAsync(string userId, string role)
     {
         var user = await _userManager.FindByIdAsync(userId);
