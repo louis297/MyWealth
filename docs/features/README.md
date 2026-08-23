@@ -32,8 +32,8 @@ When generating an implementation plan for a feature:
 | --- | --- | --- | --- |
 | [identity-auth](identity-auth.md) | accepted | Foundation | Login / Logout / Profile / JWT. Role = `UserRole` enum on ApplicationUser. Customer → 403. `/users/me` introduced. |
 | [tenants](tenants.md) | accepted | Phase 1 | SystemAdmin only. CRUD + paginated list (filter/search). Name unique case-insensitive. No user creation on create. |
-| [advisers](advisers.md) | draft | Phase 1 | TenantAdmin manages Advisers. Soft-disable requires reassigning Customers. |
-| [customers](customers.md) | draft | Phase 2 | Create / list / update / soft-disable. Must bind to an Adviser. |
+| [advisers](advisers.md) | draft | Phase 1 | TenantAdmin manages Advisers. Introduces Domain User. Create also creates Identity user. Soft-disable (DELETE) requires no remaining Customers. Email globally unique (Demo). |
+| [customers](customers.md) | draft | Phase 2 | TenantAdmin + Adviser. Must bind to Adviser. No Identity user. Adviser can only manage/assign own Customers. Soft-disable (DELETE). Email globally unique. Account-existence guard deferred to Accounts feature. |
 | [accounts](accounts.md) | draft | Phase 2 | Account lifecycle. Close is permanent (`Status = Closed`). |
 | [holdings](holdings.md) | draft | Phase 3 | Nested under `/accounts/{accountId}/holdings`. |
 | [transactions](transactions.md) | draft | Phase 3 | Create + auto-adjust Holding quantity & cost basis (core write path). |
