@@ -46,7 +46,7 @@ TenantAdmin can onboard new Advisers (with an initial password), list them with 
 
 **Out**
 
-- Creating or managing TenantAdmin accounts (seed data only for MVP)
+- Creating or managing TenantAdmin accounts (owned by [tenant-admins](tenant-admins.md))
 - Customer CRUD (next feature)
 - Physical deletion of any User
 - Adviser self-service profile changes (already covered by `/users/me`)

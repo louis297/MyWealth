@@ -212,11 +212,11 @@ None — API only (SystemAdmin management UI is out of MVP Adviser Portal scope)
 ## 11. Rollout
 
 - [x] Feature spec accepted
-- [ ] Commands / queries / validators (including transactional Create)
-- [ ] Endpoints under `/tenant-admins`
-- [ ] Tests
-- [x] Parent docs updated (api-design catalog, function-plan, features/README; Advisers Out section already points here)
-- [ ] Seed data may keep a bootstrap TenantAdmin for local convenience, but is no longer the only path
+- [x] Commands / queries / validators (including transactional Create)
+- [x] Endpoints under `/tenant-admins`
+- [x] Tests
+- [x] Parent docs updated (api-design catalog, function-plan, features/README; Advisers Out section points here)
+- [x] Seed data may keep a bootstrap TenantAdmin for local convenience, but is no longer the only path
 
 ## 12. Open questions
 
@@ -226,5 +226,6 @@ None — API only (SystemAdmin management UI is out of MVP Adviser Portal scope)
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Implemented. SystemAdmin `/tenant-admins` CRUD + soft-disable. Create rejects missing/disabled Tenant. Transactional Domain + Identity create. Last-admin disable allowed. Optional `tenantId` list filter. TenantAdminVm includes tenant name. |
 | 2026-08-24 | Accepted. Locked: create rejects disabled Tenant; disabling the last TenantAdmin is explicitly allowed; flat `/tenant-admins`; SystemAdmin only; caller-supplied password; global unique Email; soft-disable via DELETE; optional `tenantId` filter. |
 | 2026-08-24 | Created as draft. |

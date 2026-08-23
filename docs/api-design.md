@@ -2,7 +2,7 @@
 title: API design
 status: draft
 owner: ""
-last_updated: 2026-08-23
+last_updated: 2026-08-24
 related:
   - architecture.md
   - function-plan.md
@@ -11,6 +11,7 @@ related:
   - glossary.md
   - features/identity-auth.md
   - features/tenants.md
+  - features/tenant-admins.md
   - features/advisers.md
   - features/customers.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
@@ -63,7 +64,7 @@ This document describes the MVP API for the Adviser Portal. It is derived from t
 
 | Role | Login in MVP? | Tenant binding | Data scope |
 | --- | --- | --- | --- |
-| SystemAdmin | Yes | None (`TenantId = null`) | Only `/tenants`. Business data is invisible. |
+| SystemAdmin | Yes | None (`TenantId = null`) | Only `/tenants` and `/tenant-admins`. Business data is invisible. |
 | TenantAdmin | Yes | Exactly one Tenant | All Advisers, Customers, Accounts, Holdings and Transactions inside that tenant |
 | Adviser | Yes | Exactly one Tenant | Only Customers assigned to them, plus those Customers' Accounts, Holdings and Transactions |
 | Customer | **No** | Exactly one Tenant + required `AdviserId` | None. Cannot authenticate. |
@@ -72,7 +73,7 @@ Notes:
 
 - All four roles live in the same `Users` table.
 - Customer must have both a non-null `TenantId` and a non-null `AdviserId` pointing to an Adviser in the same tenant.
-- SystemAdmin follows **Option A**: it can manage tenants only. Business endpoints rely on the caller's `TenantId`; because SystemAdmin has `TenantId = null`, those endpoints naturally return no data. No `TenantId` is required in route templates.
+- SystemAdmin follows **Option A**: it can manage Tenants and TenantAdmins only. Business endpoints rely on the caller's `TenantId`; because SystemAdmin has `TenantId = null`, those endpoints naturally return no data. No `TenantId` is required in route templates.
 - Future expansion (Header-based tenant context switching for SystemAdmin) is possible but out of MVP.
 
 ### 2.3 Disable / close strategy (no hard deletes of core data)
@@ -80,8 +81,9 @@ Notes:
 | Resource | Behaviour on “delete” | Recoverable? |
 | --- | --- | --- |
 | Account | Set `Status = Closed` | **No** — permanent |
-| Adviser / Customer | Set `IsEnabled = false` | Yes (re-enable is allowed) |
+| Adviser / Customer / TenantAdmin | Set `IsEnabled = false` | Yes (re-enable is allowed) |
 | Adviser disable | Must reassign all Customers first | — |
+| TenantAdmin disable | Last remaining TenantAdmin of a Tenant is allowed | — |
 
 - Closed accounts reject all new Holdings and Transactions and are excluded from Net Worth calculations.
 - Related Holdings and Transactions are retained for history; they are not physically deleted.
@@ -113,6 +115,7 @@ Notes:
 | Auth | `/auth` | login, logout | Mixed | Custom routes. Customer login → 403 |
 | Current user | `/users/me` | GET, PUT, PUT password | user | Profile (non-password) + password change |
 | Tenants | `/tenants` | GET list, GET id, POST, PUT | SystemAdmin only | |
+| Tenant Admins | `/tenant-admins` | GET list, GET id, POST, PUT, disable | SystemAdmin only | Create also creates Identity user. Target Tenant must be enabled. |
 | Advisers | `/advisers` | GET list, GET id, POST, PUT, disable | TenantAdmin | |
 | Customers | `/customers` | GET list, GET id, POST, PUT, disable | TenantAdmin, Adviser | Must supply `AdviserId` on create |
 | Accounts | `/accounts` | GET list, GET id, POST, PUT, close | TenantAdmin, Adviser | Currency immutable after create; close is permanent |
@@ -177,7 +180,44 @@ PUT is partial: omitted `name` / `isEnabled` stay unchanged. Supplying neither i
 
 See feature spec: [tenants](features/tenants.md).
 
-### 5.3 Advisers (TenantAdmin)
+### 5.3 Tenant Admins (SystemAdmin)
+
+| Method | Route | Auth | Success | Errors | Description |
+| --- | --- | --- | --- | --- |
+| GET | `/tenant-admins` | SystemAdmin | 200 + paginated list | 400, 401, 403 | List with pagination, `isEnabled` / `tenantId` filters, `search` (Id, Name or Email) |
+| GET | `/tenant-admins/{id}` | SystemAdmin | 200 + TenantAdminVm | 401, 403, 404 | Single TenantAdmin (non-TenantAdmin ids are 404) |
+| POST | `/tenant-admins` | SystemAdmin | 201 + `{ "id": n }` | 400, 401, 403 | Create Domain User + Identity login. Email globally unique. Target Tenant must exist and be enabled. |
+| PUT | `/tenant-admins/{id}` | SystemAdmin | 204 | 400, 401, 403, 404 | Update Name and/or IsEnabled. Route `{id}` must match body `id`. |
+| DELETE | `/tenant-admins/{id}` | SystemAdmin | 204 | 400, 401, 403, 404 | Soft-disable (`IsEnabled = false` on Domain User and Identity). Last admin is allowed. |
+
+Query parameters for list (same shape as Tenants / Advisers, plus optional Tenant filter):
+
+- `page` (1-based, default 1, min 1)
+- `pageSize` (default 20, min 1, max 100)
+- `isEnabled` (optional bool)
+- `tenantId` (optional int — exact match)
+- `search` (optional string — matches Id exactly or Name/Email contains, case-insensitive)
+
+POST body:
+
+```json
+{
+  "tenantId": 1,
+  "name": "Alice Chen",
+  "email": "alice.chen@acme.com",
+  "password": "P@ssw0rd!"
+}
+```
+
+`TenantAdminVm`: `{ "id": 5, "tenantId": 1, "tenantName": "Acme Wealth", "name": "Alice Chen", "email": "alice.chen@acme.com", "isEnabled": true }`
+
+PUT is partial: omitted `name` / `isEnabled` stay unchanged. Supplying neither is 400. Re-enable is `PUT` with `isEnabled: true` and has no extra preconditions.
+
+Missing or disabled Tenant on create returns **400** (never 404). Non-TenantAdmin ids return **404**.
+
+See feature spec: [tenant-admins](features/tenant-admins.md).
+
+### 5.4 Advisers (TenantAdmin)
 
 | Method | Route | Auth | Success | Errors | Description |
 | --- | --- | --- | --- | --- |
@@ -212,7 +252,7 @@ Cross-tenant ids return **404** (never 403). TenantId is taken from the JWT, not
 
 See feature spec: [advisers](features/advisers.md).
 
-### 5.4 Customers (TenantAdmin + Adviser)
+### 5.5 Customers (TenantAdmin + Adviser)
 
 | Method | Route | Auth | Success | Errors | Description |
 | --- | --- | --- | --- | --- |
@@ -247,7 +287,7 @@ On create and reassignment, `adviserId` must reference an enabled Adviser in the
 
 See feature spec: [customers](features/customers.md).
 
-### 5.5 Accounts
+### 5.6 Accounts
 
 | Method | Route | Description |
 | --- | --- | --- |
@@ -263,7 +303,7 @@ Constraints:
 - Closed accounts are excluded from Net Worth.
 - Related Holdings and Transactions are kept for history.
 
-### 5.6 Holdings (nested)
+### 5.7 Holdings (nested)
 
 | Method | Route | Description |
 | --- | --- | --- |
@@ -278,7 +318,7 @@ Key fields:
 - `Quantity` ≥ 0
 - `CostBasis` (Money) — currency must match the Account
 
-### 5.7 Transactions
+### 5.8 Transactions
 
 | Method | Route | Description |
 | --- | --- | --- |
@@ -294,7 +334,7 @@ Rules:
 - Cannot post to a Closed account.
 - `Amount.Currency` must equal the Account’s currency.
 
-### 5.8 Dashboard
+### 5.9 Dashboard
 
 | Method | Route | Description |
 | --- | --- | --- |
@@ -304,7 +344,7 @@ Rules:
 
 Calculation rules follow the domain model (Closed accounts excluded, Credit treated as liability, Brokerage/Property use CostBasis in MVP).
 
-### 5.9 Audit Logs
+### 5.10 Audit Logs
 
 | Method | Route | Description |
 | --- | --- | --- |
@@ -361,7 +401,7 @@ When adding a group:
 
 | Topic | Decision |
 | --- | --- |
-| SystemAdmin scope | Option A — manage Tenants only; business data invisible |
+| SystemAdmin scope | Option A — manage Tenants and TenantAdmins only; business data invisible |
 | Holdings routes | Nested under `/accounts/{accountId}/holdings` |
 | Account close | `Status = Closed`, permanent, no re-activation |
 | Customer / Adviser removal | Soft disable (`IsEnabled = false`) + mandatory reassignment for Advisers |
@@ -376,6 +416,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Tenant Admins slice: `/tenant-admins` CRUD + soft-disable for SystemAdmin. Paginated list (Id/Name/Email search + optional `tenantId`), TenantAdminVm with tenant summary, transactional create with Identity user, create rejects disabled Tenant, last-admin disable allowed. Linked to tenant-admins feature spec. |
 | 2026-08-23 | Customers slice: `/customers` CRUD + soft-disable for TenantAdmin and Adviser. Paginated list (Id/Name/Email search), CustomerVm with adviser summary, Domain-only create (no Identity), Adviser self-assignment and 404 visibility scoping. Linked to customers feature spec. |
 | 2026-08-23 | Advisers slice: `/advisers` CRUD + soft-disable for TenantAdmin. Paginated list (Id/Name/Email search), AdviserVm, transactional create with Identity user, DELETE customer-reassignment guard. Linked to advisers feature spec. |
 | 2026-08-22 | Tenants slice: `/tenants` CRUD for SystemAdmin, pagination shape, TenantVm, partial PUT. Linked to tenants feature spec. |

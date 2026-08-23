@@ -2,7 +2,7 @@
 title: Domain model
 status: review
 owner: ""
-last_updated: 2026-08-23
+last_updated: 2026-08-24
 related:
   - function-plan.md
   - glossary.md
@@ -109,7 +109,7 @@ classDiagram
 
 `Tenant.Create` raises `TenantCreatedEvent`. `Enable` / `Disable` raise the matching event only when the flag actually changes.
 
-`User` factories cover all four roles. Advisers are managed via `/advisers` (TenantAdmin). Customers are managed via `/customers` (TenantAdmin + Adviser; Advisers only see and assign their own). Creating a Customer does not create an Identity login. `ReassignAdviser` raises `CustomerReassignedEvent` when `AdviserId` changes. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. No event handlers in this slice.
+`User` factories cover all four roles. TenantAdmins are managed via `/tenant-admins` (SystemAdmin). Advisers are managed via `/advisers` (TenantAdmin). Customers are managed via `/customers` (TenantAdmin + Adviser; Advisers only see and assign their own). Creating a TenantAdmin or Adviser also creates an Identity login; creating a Customer does not. `ReassignAdviser` raises `CustomerReassignedEvent` when `AdviserId` changes. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. Disabling the last TenantAdmin of a Tenant is allowed. No event handlers in this slice.
 
 ## 4. Target model (MVP)
 
