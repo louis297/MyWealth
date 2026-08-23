@@ -83,11 +83,11 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 
 | Feature                    | Description                                      | Main Pages / Interactions       | Permission                          |
 |----------------------------|--------------------------------------------------|----------------------------------|-------------------------------------|
-| Account List               | View all Accounts of a Customer                  | Customer detail / Account list   | Tenant Admin, Adviser               |
+| Account List               | View all Accounts of a Customer (filter by status / customerId) | Customer detail / Account list   | Tenant Admin, Adviser               |
 | Create Account             | Create an Account with type and currency         | Create Account form              | Tenant Admin, Adviser               |
-| Edit Account               | Update Account name, type, status, etc.          | Edit Account form                | Tenant Admin, Adviser               |
-| Delete Account             | Delete an Account (must handle related Holdings and Transactions) | Confirmation dialog     | Tenant Admin, Adviser               |
-| Account Detail             | View total value, holdings overview, recent transactions | Account detail page        | Tenant Admin, Adviser               |
+| Edit Account               | Update Account name and/or type (currency immutable) | Edit Account form            | Tenant Admin, Adviser               |
+| Close Account              | Permanently close an Account (Status = Closed; no forced clear of Holdings/Transactions) | Confirmation dialog | Tenant Admin, Adviser               |
+| Account Detail             | View basic Account info (Holdings/Transactions overview comes later) | Account detail page     | Tenant Admin, Adviser               |
 
 **Account Type Enum (MVP)**:
 

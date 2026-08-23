@@ -2,7 +2,7 @@
 title: Database design
 status: review
 owner: ""
-last_updated: 2026-08-23
+last_updated: 2026-08-24
 related:
   - domain-model.md
   - architecture.md
@@ -161,7 +161,7 @@ erDiagram
 | --- | --- | --- | --- | --- | --- |
 | `Tenants` | Aggregate root | `Id` | — | Unique `Name` (CI collation `SQL_Latin1_General_CP1_CI_AS`) | Platform-level. No TenantId column. |
 | `Users` | Aggregate root | `Id` | `TenantId` → Tenants (nullable, RESTRICT), `AdviserId` → Users (nullable, RESTRICT). No FK on `IdentityUserId`. | `(TenantId, Role)`, `AdviserId`, unique `Email` (CI collation `SQL_Latin1_General_CP1_CI_AS`), unique filtered `IdentityUserId` where not null | All four roles. SystemAdmin has `TenantId = null`. **Shipped with Advisers.** |
-| `Accounts` | Aggregate root | `Id` | `TenantId` → Tenants, `CustomerId` → Users | `(TenantId, CustomerId)`, `(CustomerId)` | Currency fixed after insert. |
+| `Accounts` | Aggregate root | `Id` | `TenantId` → Tenants, `CustomerId` → Users | `(TenantId, CustomerId)`, `(CustomerId)`, `(TenantId, Status)` | Currency fixed after insert. Status = Closed is permanent; children retained. |
 | `Holdings` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts | `(TenantId, AccountId)`, `(AccountId)` | Owned Instrument + Money (CostBasis). |
 | `Transactions` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts, `HoldingId` → Holdings (nullable) | `(TenantId, AccountId, BookedOn)`, `(AccountId, Type)`, `(HoldingId)` | Append-only in MVP. |
 
@@ -319,6 +319,7 @@ Resolved:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Accounts feature spec: confirmed column set, indexes (including TenantId+Status), Currency immutable, Status = Active/Closed permanent, children retained on close. No schema change beyond the already-designed table. |
 | 2026-08-23 | Customers slice: no schema change. Inserts `Role = Customer` rows into the existing Users table (AdviserId required, IdentityUserId null). |
 | 2026-08-23 | Users table shipped with Advisers: unique Email (CI), TenantId/AdviserId FKs (RESTRICT), no FK on IdentityUserId, tenant query filter, seed Domain+Identity for login roles and Domain-only Customer. Email uniqueness locked global. |
 | 2026-08-22 | Tenants table shipped: unique Name via CI collation + unique index. Sample Tenant is seeded before Identity users. Migrations still deferred (`EnsureCreated`). Explicit note: `ApplicationUser.TenantId` has **no FK** to Tenants (by design; real FK lives on Domain `Users`). |

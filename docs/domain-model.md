@@ -494,7 +494,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 - Tenant provisioning UI: seed only, or a System Admin screen?
 - May a Tenant Admin change a Customer's Adviser after creation? This model **allows** it so Advisers can be deleted after reassignment.
-- Account delete: cascade Holdings and Transactions, or reject until they are removed?
+- Account “delete”: resolved by Accounts feature — permanent close (`Status = Closed`) with no forced clear of Holdings/Transactions; children retained for history.
 - Is `Interest` ever an outflow (loan interest)? MVP treats it as inflow.
 - When Customer portal is introduced, should existing Customer rows automatically receive login capability, or require an explicit “enable portal access” action?
 - Glossary still needs a small alignment pass (Customer is one of the four roles living in the User table).
@@ -504,6 +504,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Accounts feature spec: confirmed Account aggregate invariants (Currency immutable, Status Active→Closed only, no forced clear of children on close). AccountType / AccountStatus values already present. |
 | 2026-08-23 | §3 Customer CRUD shipped via `/customers`. `CustomerReassignedEvent` added. Creating a Customer remains Domain-only (no Identity). |
 | 2026-08-23 | §3 current model includes User. Email uniqueness locked as global (Demo). Advisers slice ships Domain User + Identity link via `IdentityUserId`. |
 | 2026-08-22 | Replaced §3 Todo sample with Tenant as the current model. Tenant events include `TenantEnabled`. |
