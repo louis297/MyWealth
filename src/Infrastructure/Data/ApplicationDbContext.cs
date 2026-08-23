@@ -28,9 +28,22 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>, IAppli
         Func<CancellationToken, Task> operation,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
-        await operation(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+        var strategy = Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            try
+            {
+                await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+                await operation(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                ChangeTracker.Clear();
+                throw;
+            }
+        });
     }
 
     protected override void OnModelCreating(ModelBuilder builder)
