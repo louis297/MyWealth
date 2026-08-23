@@ -86,3 +86,47 @@ Content-Type: application/json
 }
 
 ###
+
+# GET /advisers
+GET {{Web_HostAddress}}/advisers?page=1&pageSize=20
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /advisers/{id}
+GET {{Web_HostAddress}}/advisers/1
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# POST /advisers
+POST {{Web_HostAddress}}/advisers
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Jane Smith",
+  "email": "jane.smith@acme.com",
+  "password": "P@ssw0rd!"
+}
+
+###
+
+# PUT /advisers/{id}
+PUT {{Web_HostAddress}}/advisers/1
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Jane Smith",
+  "isEnabled": true
+}
+
+###
+
+# DELETE /advisers/{id}
+DELETE {{Web_HostAddress}}/advisers/1
+Authorization: Bearer {{BearerToken}}
+
+###
