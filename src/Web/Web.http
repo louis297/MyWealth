@@ -87,6 +87,51 @@ Content-Type: application/json
 
 ###
 
+# GET /tenant-admins
+GET {{Web_HostAddress}}/tenant-admins?page=1&pageSize=20
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /tenant-admins/{id}
+GET {{Web_HostAddress}}/tenant-admins/1
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# POST /tenant-admins
+POST {{Web_HostAddress}}/tenant-admins
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "tenantId": 1,
+  "name": "Alice Chen",
+  "email": "alice.chen@acme.com",
+  "password": "P@ssw0rd!"
+}
+
+###
+
+# PUT /tenant-admins/{id}
+PUT {{Web_HostAddress}}/tenant-admins/1
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "Alice Chen",
+  "isEnabled": true
+}
+
+###
+
+# DELETE /tenant-admins/{id}
+DELETE {{Web_HostAddress}}/tenant-admins/1
+Authorization: Bearer {{BearerToken}}
+
+###
+
 # GET /advisers
 GET {{Web_HostAddress}}/advisers?page=1&pageSize=20
 Authorization: Bearer {{BearerToken}}
