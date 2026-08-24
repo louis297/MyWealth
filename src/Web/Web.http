@@ -270,3 +270,27 @@ Content-Type: application/json
 }
 
 ###
+
+# GET /dashboard/net-worth
+GET {{Web_HostAddress}}/dashboard/net-worth
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /dashboard/net-worth?customerId={id}
+GET {{Web_HostAddress}}/dashboard/net-worth?customerId=1
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /dashboard/allocation
+GET {{Web_HostAddress}}/dashboard/allocation
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /dashboard/allocation?customerId={id}
+GET {{Web_HostAddress}}/dashboard/allocation?customerId=1
+Authorization: Bearer {{BearerToken}}
+
+###
