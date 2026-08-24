@@ -195,6 +195,7 @@ Create an ADR when you change any of the following. Current defaults and their A
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Holdings slice: Money and Instrument value objects; Holdings nested under Account; `/accounts/{accountId}/holdings` endpoints (TenantAdmin + Adviser). Writes go through the Account aggregate. |
 | 2026-08-24 | Tenant Admins slice: `/tenant-admins` endpoints (SystemAdmin). Create wraps Domain + Identity in an execution-strategy transaction. Create rejects disabled Tenant. Last-admin disable allowed. |
 | 2026-08-23 | Customers slice: `/customers` endpoints (TenantAdmin + Adviser). Visibility by `AdviserId` for Adviser callers (resolved via Domain `Users.IdentityUserId`). Create is Domain-only; no Identity user. |
 | 2026-08-23 | Advisers slice: Domain `User` aggregate, `IApplicationDbContext.Users`, tenant query filter on Users, `/advisers` endpoints (TenantAdmin). Create wraps Domain + Identity in an execution-strategy transaction. |

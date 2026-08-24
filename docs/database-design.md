@@ -162,7 +162,7 @@ erDiagram
 | `Tenants` | Aggregate root | `Id` | — | Unique `Name` (CI collation `SQL_Latin1_General_CP1_CI_AS`) | Platform-level. No TenantId column. |
 | `Users` | Aggregate root | `Id` | `TenantId` → Tenants (nullable, RESTRICT), `AdviserId` → Users (nullable, RESTRICT). No FK on `IdentityUserId`. | `(TenantId, Role)`, `AdviserId`, unique `Email` (CI collation `SQL_Latin1_General_CP1_CI_AS`), unique filtered `IdentityUserId` where not null | All four roles. SystemAdmin has `TenantId = null`. **Shipped with Advisers.** |
 | `Accounts` | Aggregate root | `Id` | `TenantId` → Tenants, `CustomerId` → Users | `(TenantId, CustomerId)`, `(CustomerId)`, `(TenantId, Status)` | Currency fixed after insert. Status = Closed is permanent; children retained. **Shipped with Accounts.** |
-| `Holdings` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts | `(TenantId, AccountId)`, `(AccountId)` | Owned Instrument + Money (CostBasis). |
+| `Holdings` | Entity inside Account | `Id` | `TenantId` → Tenants (RESTRICT), `AccountId` → Accounts (CASCADE) | `(TenantId, AccountId)`, `(AccountId)` | Owned Instrument + Money (CostBasis). **Shipped with Holdings.** |
 | `Transactions` | Entity inside Account | `Id` | `TenantId` → Tenants, `AccountId` → Accounts, `HoldingId` → Holdings (nullable) | `(TenantId, AccountId, BookedOn)`, `(AccountId, Type)`, `(HoldingId)` | Append-only in MVP. |
 
 ASP.NET Identity tables: `AspNetUsers` is extended via `ApplicationUser` with business columns (`DisplayName`, **`Role`**, `TenantId`, `IsEnabled`, `AdviserId`). **`AspNetRoles` / `AspNetUserRoles` are not used for the four business roles** (Option B, locked 2026-08-21). Role lives as a column on `ApplicationUser` and (when the Domain `Users` table is fully introduced) on `Users.Role`. The business `Users` table links to Identity via `IdentityUserId` (nvarchar, matching Identity’s key) or by Email.
@@ -273,7 +273,7 @@ All `TenantId` columns should also be covered by the composite indexes above so 
 - **Money** and **Instrument** are configured as owned types (`OwnsOne`).
 - `UserRole`, `AccountType`, `AccountStatus`, `TransactionType` are stored as `int` (or string if preferred later).
 - Global query filters on `TenantId` are applied in `ApplicationDbContext` for `Users` (no filter when the caller has no TenantId — seed and SystemAdmin), `Accounts`, `Holdings`, `Transactions`. Email uniqueness queries must `IgnoreQueryFilters()` because uniqueness is global.
-- `Holdings` and `Transactions` do **not** need their own `DbSet<>` on `IApplicationDbContext` if they are only accessed through the Account aggregate for writes. They may still be exposed for efficient read-side queries.
+- `Holdings` is exposed on `IApplicationDbContext` for read-side queries. Writes still go through the Account aggregate. `Transactions` may be omitted until that slice if they are only loaded via Account.
 - `IdentityUserId` on `Users` is the bridge to `AspNetUsers`. Creating a login-capable User (SystemAdmin / TenantAdmin / Adviser) also creates the corresponding Identity user in Infrastructure.
 
 ## 6. Seed and reference data
@@ -284,7 +284,8 @@ All `TenantId` columns should also be covered by the composite indexes above so 
 | SystemAdmin Domain User + Identity account | Development seed | Linked via `IdentityUserId`. Platform operator |
 | TenantAdmin + Adviser Domain Users + Identity for the sample Tenant | Development seed | Linked via `IdentityUserId` |
 | One Customer under the seeded Adviser | Development seed | Domain `User` only — no Identity login |
-| One sample Account under the seeded Customer | Development seed | `Primary Brokerage`, type Brokerage, currency NZD. Holdings / Transactions not seeded yet |
+| One sample Account under the seeded Customer | Development seed | `Primary Brokerage`, type Brokerage, currency NZD |
+| One sample Holding under the seeded Account | Development seed | Apple Inc. / AAPL, qty 100, cost NZD 18500. Transactions not seeded yet |
 
 Do not seed another tenant’s real financial data.  
 Reference data such as currency codes is not seeded in MVP (Currency is stored as free-form ISO 4217 `char(3)`).
@@ -297,12 +298,13 @@ Keep the Application-layer interface in sync:
 DbSet<Tenant> Tenants { get; }
 DbSet<User> Users { get; }
 DbSet<Account> Accounts { get; }
-// Holdings / Transactions may be omitted if only loaded via Account
+DbSet<Holding> Holdings { get; }
+// Transactions may be omitted if only loaded via Account
 Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken);
 ```
 
-`Accounts` is now exposed. Global query filter: `CurrentTenantId == null || a.TenantId == CurrentTenantId`.
+`Accounts` and `Holdings` are now exposed. Global query filter: `CurrentTenantId == null || row.TenantId == CurrentTenantId`. Writes to Holdings go through the Account aggregate; `Holdings` is used for read-side queries.
 
 `ApplicationDbContext` exposes Domain users as `DomainUsers` so it does not hide Identity's `Users` (`DbSet<ApplicationUser>`). `IApplicationDbContext.Users` is the Domain set. Table name is `Users`.
 
@@ -321,6 +323,7 @@ Resolved:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Holdings table shipped: owned Instrument + Money, Account FK CASCADE, Tenant FK RESTRICT, indexes (TenantId+AccountId, AccountId), tenant query filter, sample Apple holding seed. EnsureCreated retained (no migration). |
 | 2026-08-24 | Accounts table shipped: FKs RESTRICT, indexes (TenantId+CustomerId, CustomerId, TenantId+Status), tenant query filter, sample Brokerage seed. EnsureCreated retained (no migration). |
 | 2026-08-24 | Accounts feature spec: confirmed column set, indexes (including TenantId+Status), Currency immutable, Status = Active/Closed permanent, children retained on close. No schema change beyond the already-designed table. |
 | 2026-08-23 | Customers slice: no schema change. Inserts `Role = Customer` rows into the existing Users table (AdviserId required, IdentityUserId null). |

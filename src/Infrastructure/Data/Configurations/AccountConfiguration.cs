@@ -44,5 +44,13 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.HasIndex(a => a.CustomerId);
 
         builder.HasIndex(a => new { a.TenantId, a.Status });
+
+        builder.HasMany(a => a.Holdings)
+            .WithOne()
+            .HasForeignKey(h => h.AccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(a => a.Holdings)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

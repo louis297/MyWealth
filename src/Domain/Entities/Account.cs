@@ -1,14 +1,18 @@
 using MyWealth.Domain.Events;
+using MyWealth.Domain.ValueObjects;
 
 namespace MyWealth.Domain.Entities;
 
 /// <summary>
-/// Aggregate root for a Customer-owned account. Holdings and Transactions are added by later slices.
+/// Aggregate root for a Customer-owned account. Holdings live inside this aggregate.
+/// Transactions are added by a later slice.
 /// </summary>
 public class Account : BaseAuditableEntity
 {
     public const int NameMaxLength = 200;
     public const int CurrencyLength = 3;
+
+    private readonly List<Holding> _holdings = [];
 
     public int TenantId { get; private set; }
 
@@ -21,6 +25,8 @@ public class Account : BaseAuditableEntity
     public AccountStatus Status { get; private set; }
 
     public string Currency { get; private set; } = null!;
+
+    public IReadOnlyCollection<Holding> Holdings => _holdings.AsReadOnly();
 
     public bool IsLiability => Type == AccountType.Credit;
 
@@ -88,6 +94,67 @@ public class Account : BaseAuditableEntity
         {
             throw new InvalidOperationException("Closed accounts reject writes.");
         }
+    }
+
+    public Holding AddHolding(Instrument instrument, decimal quantity, Money costBasis)
+    {
+        EnsureWritable();
+        ArgumentNullException.ThrowIfNull(instrument);
+        ArgumentNullException.ThrowIfNull(costBasis);
+
+        if (costBasis.Currency != Currency)
+        {
+            throw new ArgumentException("Cost basis currency must match the account currency.", nameof(costBasis));
+        }
+
+        var holding = Holding.Create(TenantId, Id, instrument, quantity, costBasis);
+        _holdings.Add(holding);
+        AddDomainEvent(new HoldingChangedEvent(this, holding));
+        return holding;
+    }
+
+    public bool UpdateHolding(int holdingId, Instrument? instrument, decimal? quantity, decimal? costBasisAmount)
+    {
+        EnsureWritable();
+
+        var holding = _holdings.SingleOrDefault(h => h.Id == holdingId);
+        if (holding is null)
+        {
+            return false;
+        }
+
+        if (instrument is not null)
+        {
+            holding.ChangeInstrument(instrument);
+        }
+
+        if (quantity is not null)
+        {
+            holding.SetQuantity(quantity.Value);
+        }
+
+        if (costBasisAmount is not null)
+        {
+            holding.SetCostBasisAmount(costBasisAmount.Value);
+        }
+
+        AddDomainEvent(new HoldingChangedEvent(this, holding));
+        return true;
+    }
+
+    public bool RemoveHolding(int holdingId)
+    {
+        EnsureWritable();
+
+        var holding = _holdings.SingleOrDefault(h => h.Id == holdingId);
+        if (holding is null)
+        {
+            return false;
+        }
+
+        _holdings.Remove(holding);
+        AddDomainEvent(new HoldingChangedEvent(this, holding));
+        return true;
     }
 
     private void SetName(string name)

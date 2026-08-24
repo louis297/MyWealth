@@ -60,7 +60,7 @@ These match the current Domain project plus accepted ADRs. Change them only with
 
 ## 3. Current model
 
-Tenant, User, and Account aggregates have landed. Login still lives in Infrastructure (`ApplicationUser`); Domain `User` links to it via `IdentityUserId` (no hard FK). Holdings and Transactions are not yet in the Domain project.
+Tenant, User, and Account aggregates have landed. Holdings live inside Account. Login still lives in Infrastructure (`ApplicationUser`); Domain `User` links to it via `IdentityUserId` (no hard FK). Transactions are not yet in the Domain project.
 
 ```mermaid
 classDiagram
@@ -99,6 +99,21 @@ classDiagram
     AccountStatus Status
     string Currency
   }
+  class Holding {
+    int TenantId
+    int AccountId
+    Instrument Instrument
+    decimal Quantity
+    Money CostBasis
+  }
+  class Money {
+    decimal Amount
+    string Currency
+  }
+  class Instrument {
+    string Name
+    string Symbol
+  }
   class AccountType {
     <<enumeration>>
     Bank
@@ -116,9 +131,13 @@ classDiagram
   BaseAuditableEntity <|-- Tenant
   BaseAuditableEntity <|-- User
   BaseAuditableEntity <|-- Account
+  BaseAuditableEntity <|-- Holding
   User --> UserRole : has
   Account --> AccountType : has
   Account --> AccountStatus : has
+  Account "1" --> "*" Holding
+  Holding --> Instrument
+  Holding --> Money : CostBasis
   Tenant "1" --> "*" User
   User "1" --> "*" User : AdviserId
   User "1" --> "*" Account : CustomerId
@@ -133,15 +152,18 @@ classDiagram
 | `UserRole` | Enum | `src/Domain/Enums/UserRole.cs` |
 | `Roles.*` | Constants | `src/Domain/Constants/Roles.cs` |
 | `Account` | Aggregate root | `src/Domain/Entities/Account.cs` |
-| `AccountOpenedEvent` / `AccountClosedEvent` | Domain event | `src/Domain/Events/` |
+| `AccountOpenedEvent` / `AccountClosedEvent` / `HoldingChangedEvent` | Domain event | `src/Domain/Events/` |
 | `AccountType` | Enum | `src/Domain/Enums/AccountType.cs` |
 | `AccountStatus` | Enum | `src/Domain/Enums/AccountStatus.cs` |
+| `Holding` | Entity (inside Account) | `src/Domain/Entities/Holding.cs` |
+| `Money` | Value object | `src/Domain/ValueObjects/Money.cs` |
+| `Instrument` | Value object | `src/Domain/ValueObjects/Instrument.cs` |
 
 `Tenant.Create` raises `TenantCreatedEvent`. `Enable` / `Disable` raise the matching event only when the flag actually changes.
 
 `User` factories cover all four roles. TenantAdmins are managed via `/tenant-admins` (SystemAdmin). Advisers are managed via `/advisers` (TenantAdmin). Customers are managed via `/customers` (TenantAdmin + Adviser; Advisers only see and assign their own). Creating a TenantAdmin or Adviser also creates an Identity login; creating a Customer does not. `ReassignAdviser` raises `CustomerReassignedEvent` when `AdviserId` changes. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. A Customer cannot be disabled while any **Active** Account remains. Disabling the last TenantAdmin of a Tenant is allowed. No event handlers in this slice.
 
-`Account.Open` copies `TenantId` from the Customer, fixes Currency, and raises `AccountOpenedEvent`. `Close` is a one-way `Active → Closed` transition (`AccountClosedEvent`); it does not require or clear child Holdings/Transactions (those slices have not shipped). `EnsureWritable()` is the hook later Holding/Transaction writes will call. There is no physical delete.
+`Account.Open` copies `TenantId` from the Customer, fixes Currency, and raises `AccountOpenedEvent`. `Close` is a one-way `Active → Closed` transition (`AccountClosedEvent`); it does not require or clear child Holdings. `EnsureWritable()` is called by Holding create/update/delete. `AddHolding` / `UpdateHolding` / `RemoveHolding` raise `HoldingChangedEvent`. Cost-basis currency must match the Account. Physical delete of a Holding is allowed until the Transactions slice adds the historical-Tx guard. There is no physical delete of Accounts.
 
 ## 4. Target model (MVP)
 
@@ -537,6 +559,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | §3 Holdings shipped inside Account via `/accounts/{accountId}/holdings`. Money and Instrument value objects landed. HoldingChangedEvent raised on create/update/delete. Transactions still target-model only. |
 | 2026-08-24 | §3 Account aggregate shipped via `/accounts`. Close is permanent (`POST /accounts/{id}/close`). Customer disable refused while Active accounts remain. Holdings/Transactions still target-model only. |
 | 2026-08-24 | Accounts feature spec: confirmed Account aggregate invariants (Currency immutable, Status Active→Closed only, no forced clear of children on close). AccountType / AccountStatus values already present. |
 | 2026-08-23 | §3 Customer CRUD shipped via `/customers`. `CustomerReassignedEvent` added. Creating a Customer remains Domain-only (no Identity). |
