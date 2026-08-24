@@ -37,7 +37,7 @@ public class UpdateHoldingCommandHandler : IRequestHandler<UpdateHoldingCommand>
 
     public async Task Handle(UpdateHoldingCommand request, CancellationToken cancellationToken)
     {
-        var account = await AccountVisibility.FindVisibleAccountWithHoldingsAsync(
+        var account = await AccountVisibility.FindVisibleAccountAggregateAsync(
             _context, _user, request.AccountId, cancellationToken);
 
         if (account is null)

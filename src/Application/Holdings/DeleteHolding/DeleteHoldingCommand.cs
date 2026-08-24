@@ -30,7 +30,7 @@ public class DeleteHoldingCommandHandler : IRequestHandler<DeleteHoldingCommand>
 
     public async Task Handle(DeleteHoldingCommand request, CancellationToken cancellationToken)
     {
-        var account = await AccountVisibility.FindVisibleAccountWithHoldingsAsync(
+        var account = await AccountVisibility.FindVisibleAccountAggregateAsync(
             _context, _user, request.AccountId, cancellationToken);
 
         if (account is null)
@@ -43,6 +43,14 @@ public class DeleteHoldingCommandHandler : IRequestHandler<DeleteHoldingCommand>
             throw new ValidationException(
             [
                 new ValidationFailure("AccountId", "Closed accounts reject writes.")
+            ]);
+        }
+
+        if (account.Transactions.Any(t => t.HoldingId == request.Id))
+        {
+            throw new ValidationException(
+            [
+                new ValidationFailure("Id", "Cannot delete a holding that still has historical transactions.")
             ]);
         }
 

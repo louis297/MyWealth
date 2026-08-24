@@ -61,13 +61,15 @@ internal static class AccountVisibility
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
     }
 
-    public static async Task<Account?> FindVisibleAccountWithHoldingsAsync(
+    public static async Task<Account?> FindVisibleAccountAggregateAsync(
         IApplicationDbContext context,
         IUser user,
         int id,
         CancellationToken cancellationToken)
     {
-        IQueryable<Account> accounts = context.Accounts.Include(a => a.Holdings);
+        IQueryable<Account> accounts = context.Accounts
+            .Include(a => a.Holdings)
+            .Include(a => a.Transactions);
 
         if (IsAdviser(user))
         {
