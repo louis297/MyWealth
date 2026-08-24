@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Azure.Identity;
 using MyWealth.Application.Common.Interfaces;
 using MyWealth.Infrastructure.Data;
@@ -15,6 +16,9 @@ public static class DependencyInjection
         builder.Services.AddScoped<IUser, CurrentUser>();
 
         builder.Services.AddHttpContextAccessor();
+
+        builder.Services.ConfigureHttpJsonOptions(options =>
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
         builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
 
