@@ -121,7 +121,7 @@ Notes:
 | Accounts | `/accounts` | GET list, GET id, POST, PUT, POST close | TenantAdmin, Adviser | Currency immutable after create; close is permanent (`POST /{id}/close`); no forced clear of children |
 | Holdings | `/accounts/{accountId}/holdings` | GET, POST, PUT, DELETE | TenantAdmin, Adviser | Nested under Account |
 | Transactions | `/transactions` | GET (filter), POST | TenantAdmin, Adviser | Append-only; no update/delete |
-| Dashboard | `/dashboard/net-worth`, `/dashboard/allocation` | GET | TenantAdmin, Adviser | Supports optional `customerId` |
+| Dashboard | `/dashboard/net-worth`, `/dashboard/allocation` | GET | TenantAdmin, Adviser | Optional `customerId` on both; multi-currency arrays; no pagination |
 | Audit Logs | `/audit-logs` | GET | TenantAdmin (own tenant), SystemAdmin (all) | |
 
 ## 5. Endpoint details
@@ -455,8 +455,11 @@ See feature spec: [transactions](features/transactions.md).
 | GET | `/dashboard/net-worth` | Net worth for the caller’s visible scope |
 | GET | `/dashboard/net-worth?customerId={id}` | Net worth for a specific Customer (must be visible to the caller) |
 | GET | `/dashboard/allocation` | Asset allocation by AccountType |
+| GET | `/dashboard/allocation?customerId={id}` | Allocation for a specific Customer (must be visible to the caller) |
 
-Calculation rules follow the domain model (Closed accounts excluded, Credit treated as liability, Brokerage/Property use CostBasis in MVP).
+Calculation rules follow the domain model (Closed accounts excluded, Credit treated as liability, Brokerage/Property use CostBasis in MVP). Results are multi-currency arrays (one item per currency); empty data returns an empty array. No pagination / sort / search.
+
+See feature spec: [dashboard](features/dashboard.md).
 
 ### 5.9 Audit Logs
 
@@ -519,7 +522,7 @@ When adding a group:
 | Holdings routes | Nested under `/accounts/{accountId}/holdings` |
 | Account close | `POST /accounts/{id}/close` → `Status = Closed`, permanent, no re-activation; no forced clear of Holdings/Transactions |
 | Customer / Adviser removal | Soft disable (`IsEnabled = false`) + mandatory reassignment for Advisers |
-| Net Worth | Supports optional `customerId` filter |
+| Net Worth / Allocation | Optional `customerId` on both endpoints; multi-currency arrays; empty → empty array; signed-sum locked |
 | Auth routes | Custom `/auth/login` + `/auth/logout` (not raw MapIdentityApi surface) |
 | Current user | `/users/me` (GET + PUT profile) and `/users/me/password` |
 | Customer login | Explicitly rejected with **403** |
@@ -530,6 +533,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Dashboard feature spec drafted: `/dashboard/net-worth` + `/dashboard/allocation` (both support optional customerId). Multi-currency arrays, empty → empty array, signed-sum locked, Closed excluded, Credit = liability. API only. |
 | 2026-08-24 | Transactions slice shipped: top-level `/transactions` list/get/create (append-only). Buy/Sell adjust Holding via average cost. Holding DELETE blocked when historical transactions exist. |
 | 2026-08-24 | Holdings slice shipped: nested `/accounts/{accountId}/holdings` list/get/create/partial PUT/delete. CostBasis.Currency immutable and must match Account. Closed Account writes 400; reads remain 200. |
 | 2026-08-24 | Accounts slice shipped: `/accounts` list/get/create/update + `POST /{id}/close`. Enums serialized as strings. Customer `DELETE` / disable now returns 400 while Active accounts remain. |
