@@ -1,6 +1,6 @@
 ---
 title: "Dashboard"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-24
 related:
@@ -182,13 +182,13 @@ None — API only for this slice.
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] (no Domain types)
-- [ ] (no EF configuration / migration)
-- [ ] GetNetWorth + GetAssetAllocation queries + validators
-- [ ] Endpoints under `/dashboard`
-- [ ] Tests
-- [ ] Parent docs updated (api-design, features/README, function-plan if needed)
+- [x] Feature spec accepted
+- [x] (no Domain types)
+- [x] (no EF configuration / migration)
+- [x] GetNetWorth + GetAssetAllocation queries + validators
+- [x] Endpoints under `/dashboard`
+- [x] Tests
+- [x] Parent docs updated (api-design, features/README, function-plan if needed)
 
 ## 12. Open questions
 
@@ -203,4 +203,5 @@ None — API only for this slice.
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Implemented. `GET /dashboard/net-worth` and `GET /dashboard/allocation` for TenantAdmin + Adviser. Optional `customerId` (404 if invisible). Multi-currency arrays, empty → empty array, Closed excluded, Credit = liability, signed-sum locked. Pure read model, API only. |
 | 2026-08-24 | Created from discussion. Locked: signed-sum signs (TransferIn/Dividend/Interest/Sell = +, TransferOut/Buy = −), allocation also accepts customerId, multi-currency as array, empty → empty array, no Account Performance, pure read model, API only. |

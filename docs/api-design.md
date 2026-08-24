@@ -15,6 +15,8 @@ related:
   - features/customers.md
   - features/accounts.md
   - features/holdings.md
+  - features/transactions.md
+  - features/dashboard.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
   - adr/0004-money-as-decimal-with-currency.md
   - adr/0005-shared-database-tenantid-isolation.md
@@ -450,14 +452,70 @@ See feature spec: [transactions](features/transactions.md).
 
 ### 5.8 Dashboard
 
-| Method | Route | Description |
-| --- | --- | --- |
-| GET | `/dashboard/net-worth` | Net worth for the caller’s visible scope |
-| GET | `/dashboard/net-worth?customerId={id}` | Net worth for a specific Customer (must be visible to the caller) |
-| GET | `/dashboard/allocation` | Asset allocation by AccountType |
-| GET | `/dashboard/allocation?customerId={id}` | Allocation for a specific Customer (must be visible to the caller) |
+| Method | Route | Auth | Success | Errors | Description |
+| --- | --- | --- | --- | --- | --- |
+| GET | `/dashboard/net-worth` | TenantAdmin, Adviser | 200 + NetWorthVm | 401, 403 | Net worth for the caller’s visible scope |
+| GET | `/dashboard/net-worth?customerId={id}` | TenantAdmin, Adviser | 200 + NetWorthVm | 401, 403, 404 | Net worth for a specific Customer (must be visible to the caller) |
+| GET | `/dashboard/allocation` | TenantAdmin, Adviser | 200 + AssetAllocationVm | 401, 403 | Asset allocation by AccountType |
+| GET | `/dashboard/allocation?customerId={id}` | TenantAdmin, Adviser | 200 + AssetAllocationVm | 401, 403, 404 | Allocation for a specific Customer (must be visible to the caller) |
 
-Calculation rules follow the domain model (Closed accounts excluded, Credit treated as liability, Brokerage/Property use CostBasis in MVP). Results are multi-currency arrays (one item per currency); empty data returns an empty array. No pagination / sort / search.
+Rules:
+
+- Visibility is identical to Accounts. TenantAdmin sees the whole tenant; Advisers see only accounts belonging to their own customers.
+- A `customerId` that is missing, belongs to another tenant, or is not visible to the caller returns **404** (never 403).
+- Only Active accounts participate. Closed accounts are excluded.
+- Bank / Cash / Other value = signed sum of that account’s Transactions (`+Amount` for TransferIn, Dividend, Interest, Sell; `-Amount` for TransferOut, Buy).
+- Credit uses the same signed sum and is treated as a liability.
+- Brokerage / Property value = sum of Holdings’ `CostBasis.Amount`.
+- Results are multi-currency arrays (one net-worth item per currency; one allocation item per AccountType + currency). No FX conversion.
+- Active accounts with no transactions / holdings still contribute a zero row for their currency / type.
+- Empty visible data returns `{ "items": [] }`.
+- No pagination, sorting or search.
+
+`NetWorthVm`:
+
+```json
+{
+  "items": [
+    {
+      "currency": "NZD",
+      "assets": 19460.00,
+      "liabilities": 500.00,
+      "net": 18960.00
+    },
+    {
+      "currency": "USD",
+      "assets": 75.00,
+      "liabilities": 0.00,
+      "net": 75.00
+    }
+  ]
+}
+```
+
+`AssetAllocationVm`:
+
+```json
+{
+  "items": [
+    {
+      "accountType": "Bank",
+      "currency": "NZD",
+      "value": 860.00
+    },
+    {
+      "accountType": "Brokerage",
+      "currency": "NZD",
+      "value": 18500.00
+    },
+    {
+      "accountType": "Credit",
+      "currency": "NZD",
+      "value": 500.00
+    }
+  ]
+}
+```
 
 See feature spec: [dashboard](features/dashboard.md).
 
@@ -533,6 +591,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Dashboard slice shipped: `/dashboard/net-worth` + `/dashboard/allocation` (both support optional customerId). Documented VM shapes, signed-sum, Closed exclusion, Credit as liability, empty → empty array. |
 | 2026-08-24 | Dashboard feature spec drafted: `/dashboard/net-worth` + `/dashboard/allocation` (both support optional customerId). Multi-currency arrays, empty → empty array, signed-sum locked, Closed excluded, Credit = liability. API only. |
 | 2026-08-24 | Transactions slice shipped: top-level `/transactions` list/get/create (append-only). Buy/Sell adjust Holding via average cost. Holding DELETE blocked when historical transactions exist. |
 | 2026-08-24 | Holdings slice shipped: nested `/accounts/{accountId}/holdings` list/get/create/partial PUT/delete. CostBasis.Currency immutable and must match Account. Closed Account writes 400; reads remain 200. |
