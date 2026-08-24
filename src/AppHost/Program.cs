@@ -21,5 +21,12 @@ var web = builder.AddProject<Projects.Web>(Services.WebApi)
         url.Url = "/scalar";
     });
 
+var adviserPortal = builder.AddViteApp("adviser-portal", "../AdviserPortal")
+    .WithNpm()
+    .WithReference(web)
+    .WaitFor(web)
+    .WithExternalHttpEndpoints()
+    .WithEnvironment("BROWSER", "none")
+    .WithEndpoint(port: 5173, name: "http");
 
 builder.Build().Run();
