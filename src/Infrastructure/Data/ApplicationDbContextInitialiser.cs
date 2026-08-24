@@ -1,5 +1,6 @@
 ﻿using MyWealth.Domain.Entities;
 using MyWealth.Domain.Enums;
+using MyWealth.Domain.ValueObjects;
 using MyWealth.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -97,7 +98,8 @@ public class ApplicationDbContextInitialiser
             email: "t1c1@localhost",
             name: "Tenant1 Customer1");
 
-        await EnsureSampleAccountAsync(customer);
+        var account = await EnsureSampleAccountAsync(customer);
+        await EnsureSampleHoldingAsync(account);
     }
 
     private async Task<Tenant> EnsureSampleTenantAsync()
@@ -176,19 +178,36 @@ public class ApplicationDbContextInitialiser
         return customer;
     }
 
-    private async Task EnsureSampleAccountAsync(User customer)
+    private async Task<Account> EnsureSampleAccountAsync(User customer)
     {
-        if (await _context.Accounts.AnyAsync(a => a.CustomerId == customer.Id))
+        var existing = await _context.Accounts.FirstOrDefaultAsync(a => a.CustomerId == customer.Id);
+        if (existing is not null)
         {
-            return;
+            return existing;
         }
 
-        _context.Accounts.Add(Account.Open(
+        var account = Account.Open(
             customer.TenantId!.Value,
             customer.Id,
             "Primary Brokerage",
             AccountType.Brokerage,
-            "NZD"));
+            "NZD");
+        _context.Accounts.Add(account);
+        await _context.SaveChangesAsync();
+        return account;
+    }
+
+    private async Task EnsureSampleHoldingAsync(Account account)
+    {
+        if (await _context.Holdings.AnyAsync(h => h.AccountId == account.Id))
+        {
+            return;
+        }
+
+        account.AddHolding(
+            Instrument.Create("Apple Inc.", "AAPL"),
+            100m,
+            Money.Of(18500m, "NZD"));
         await _context.SaveChangesAsync();
     }
 }
