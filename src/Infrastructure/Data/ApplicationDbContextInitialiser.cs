@@ -91,11 +91,13 @@ public class ApplicationDbContextInitialiser
             role: UserRole.Adviser,
             tenantId: tenant.Id);
 
-        await EnsureDomainCustomerAsync(
+        var customer = await EnsureDomainCustomerAsync(
             tenantId: tenant.Id,
             adviserId: adviser.Id,
             email: "t1c1@localhost",
             name: "Tenant1 Customer1");
+
+        await EnsureSampleAccountAsync(customer);
     }
 
     private async Task<Tenant> EnsureSampleTenantAsync()
@@ -160,14 +162,33 @@ public class ApplicationDbContextInitialiser
         return user;
     }
 
-    private async Task EnsureDomainCustomerAsync(int tenantId, int adviserId, string email, string name)
+    private async Task<User> EnsureDomainCustomerAsync(int tenantId, int adviserId, string email, string name)
     {
-        if (await _context.DomainUsers.AnyAsync(u => u.Email == email))
+        var existing = await _context.DomainUsers.FirstOrDefaultAsync(u => u.Email == email);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var customer = User.CreateCustomer(tenantId, adviserId, name, email);
+        _context.DomainUsers.Add(customer);
+        await _context.SaveChangesAsync();
+        return customer;
+    }
+
+    private async Task EnsureSampleAccountAsync(User customer)
+    {
+        if (await _context.Accounts.AnyAsync(a => a.CustomerId == customer.Id))
         {
             return;
         }
 
-        _context.DomainUsers.Add(User.CreateCustomer(tenantId, adviserId, name, email));
+        _context.Accounts.Add(Account.Open(
+            customer.TenantId!.Value,
+            customer.Id,
+            "Primary Brokerage",
+            AccountType.Brokerage,
+            "NZD"));
         await _context.SaveChangesAsync();
     }
 }

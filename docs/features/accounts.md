@@ -1,6 +1,6 @@
 ---
 title: "Accounts"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-24
 related:
@@ -243,13 +243,13 @@ None — API only for this slice. Account list / create / edit / close pages in 
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] Domain `Account` entity + invariants + optional events
-- [ ] EF configuration (FKs, indexes) + EnsureCreated / seed updates if needed
-- [ ] Commands / queries / validators
-- [ ] Endpoints under `/accounts` (+ `/close`)
-- [ ] Tests
-- [ ] Parent docs updated (domain-model if needed, database-design, api-design, function-plan, features/README)
+- [x] Feature spec accepted
+- [x] Domain `Account` entity + invariants + optional events
+- [x] EF configuration (FKs, indexes) + EnsureCreated / seed updates if needed
+- [x] Commands / queries / validators
+- [x] Endpoints under `/accounts` (+ `/close`)
+- [x] Tests
+- [x] Parent docs updated (domain-model if needed, database-design, api-design, function-plan, features/README)
 
 ## 12. Open questions
 
@@ -265,4 +265,5 @@ None — API only for this slice. Account list / create / edit / close pages in 
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Implemented. TenantAdmin + Adviser CRUD under `/accounts`. Close is `POST /accounts/{id}/close` (irreversible). Currency immutable. PUT Name and/or Type (forbidden fields rejected). Visibility 404 scoping. Customer disable now refused while Active accounts remain. Sample Brokerage account seeded. |
 | 2026-08-24 | Created from discussion. Locked: no forced clear on close, AccountType from domain-model, customerId list filter, POST /close, PUT may change Type, Status = Active/Closed. |

@@ -3,9 +3,9 @@ using MyWealth.Domain.Constants;
 using MyWealth.Domain.Entities;
 using MyWealth.Domain.Enums;
 
-namespace MyWealth.Application.Customers;
+namespace MyWealth.Application.Accounts;
 
-internal static class CustomerVisibility
+internal static class AccountVisibility
 {
     public const string AllowedRoles = Roles.TenantAdmin + "," + Roles.Adviser;
 
@@ -29,23 +29,25 @@ internal static class CustomerVisibility
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public static IQueryable<User> ScopedCustomers(
+    public static IQueryable<Account> ScopedAccounts(
+        IQueryable<Account> accounts,
         IQueryable<User> users,
         IUser user,
         int? adviserDomainUserId)
     {
-        var query = users.Where(u => u.Role == UserRole.Customer);
-
         if (!IsAdviser(user))
         {
-            return query;
+            return accounts;
         }
 
         var id = adviserDomainUserId ?? -1;
-        return query.Where(u => u.AdviserId == id);
+        return from account in accounts
+               join customer in users on account.CustomerId equals customer.Id
+               where customer.AdviserId == id
+               select account;
     }
 
-    public static async Task<User?> FindVisibleCustomerAsync(
+    public static async Task<Account?> FindVisibleAccountAsync(
         IApplicationDbContext context,
         IUser user,
         int id,
@@ -55,35 +57,36 @@ internal static class CustomerVisibility
             ? await GetCallerDomainUserIdAsync(context, user, cancellationToken)
             : null;
 
-        return await ScopedCustomers(context.Users, user, adviserDomainUserId)
-            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+        return await ScopedAccounts(context.Accounts, context.Users, user, adviserDomainUserId)
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
     }
 
-    public static IQueryable<CustomerVm> ProjectToVm(IQueryable<User> customers, IQueryable<User> users)
-        => from customer in customers
-           join adviser in users on customer.AdviserId equals adviser.Id
-           select new CustomerVm
+    public static IQueryable<AccountVm> ProjectToVm(IQueryable<Account> accounts, IQueryable<User> users)
+        => from account in accounts
+           join customer in users on account.CustomerId equals customer.Id
+           select new AccountVm
            {
-               Id = customer.Id,
-               Name = customer.Name,
-               Email = customer.Email,
-               IsEnabled = customer.IsEnabled,
-               AdviserId = customer.AdviserId!.Value,
-               AdviserName = adviser.Name
+               Id = account.Id,
+               CustomerId = account.CustomerId,
+               CustomerName = customer.Name,
+               Name = account.Name,
+               Type = account.Type,
+               Status = account.Status,
+               Currency = account.Currency
            };
 
-    public static Task<bool> IsEnabledAdviserAsync(
+    public static Task<bool> IsEnabledCustomerInTenantAsync(
         IApplicationDbContext context,
-        int adviserId,
+        int customerId,
         CancellationToken cancellationToken)
         => context.Users.AnyAsync(
-            u => u.Id == adviserId && u.Role == UserRole.Adviser && u.IsEnabled,
+            u => u.Id == customerId && u.Role == UserRole.Customer && u.IsEnabled,
             cancellationToken);
 
-    public static async Task<bool> CallerMayAssignAsync(
+    public static async Task<bool> CallerMayTargetCustomerAsync(
         IApplicationDbContext context,
         IUser user,
-        int adviserId,
+        int customerId,
         CancellationToken cancellationToken)
     {
         if (!IsAdviser(user))
@@ -92,14 +95,8 @@ internal static class CustomerVisibility
         }
 
         var domainUserId = await GetCallerDomainUserIdAsync(context, user, cancellationToken);
-        return domainUserId == adviserId;
-    }
-
-    public static Task<int> CountActiveAccountsAsync(
-        IApplicationDbContext context,
-        int customerId,
-        CancellationToken cancellationToken)
-        => context.Accounts.CountAsync(
-            a => a.CustomerId == customerId && a.Status == AccountStatus.Active,
+        return await context.Users.AnyAsync(
+            u => u.Id == customerId && u.Role == UserRole.Customer && u.AdviserId == domainUserId,
             cancellationToken);
+    }
 }
