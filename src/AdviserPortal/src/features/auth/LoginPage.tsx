@@ -33,7 +33,7 @@ export function LoginPage() {
         },
       }),
     )
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   return (

@@ -51,7 +51,7 @@ export function MainLayout() {
             className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
             onClick={() => {
               dispatch(logout())
-              navigate('/login')
+              navigate('/login', { replace: true })
             }}
           >
             Log out
