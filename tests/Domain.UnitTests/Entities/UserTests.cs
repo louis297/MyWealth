@@ -255,6 +255,28 @@ public class UserTests
     }
 
     [Test]
+    public void Disable_CustomerWithActiveAccounts_Throws()
+    {
+        var user = User.CreateCustomer(1, 12, "Zhang", "zhang@example.com");
+
+        var action = () => user.Disable(activeAccountCount: 1);
+
+        Should.Throw<InvalidOperationException>(action)
+            .Message.ShouldContain("active accounts");
+        user.IsEnabled.ShouldBeTrue();
+    }
+
+    [Test]
+    public void Disable_AdviserWithActiveAccountCount_DoesNotThrow()
+    {
+        var user = User.CreateAdviser(1, "Jane", "jane@acme.com");
+
+        user.Disable(activeAccountCount: 1);
+
+        user.IsEnabled.ShouldBeFalse();
+    }
+
+    [Test]
     public void LinkIdentity_SetsTrimmedId()
     {
         var user = User.CreateAdviser(1, "Jane", "jane@acme.com");

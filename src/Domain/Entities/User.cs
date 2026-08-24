@@ -71,12 +71,18 @@ public class User : BaseAuditableEntity
         AddDomainEvent(new UserEnabledEvent(this));
     }
 
-    public void Disable(int assignedCustomerCount = 0)
+    public void Disable(int assignedCustomerCount = 0, int activeAccountCount = 0)
     {
         if (Role == UserRole.Adviser && assignedCustomerCount > 0)
         {
             throw new InvalidOperationException(
                 "Cannot disable an adviser who still has customers assigned.");
+        }
+
+        if (Role == UserRole.Customer && activeAccountCount > 0)
+        {
+            throw new InvalidOperationException(
+                "Cannot disable a customer who still has active accounts.");
         }
 
         if (!IsEnabled)
