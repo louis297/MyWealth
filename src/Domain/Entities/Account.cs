@@ -4,8 +4,7 @@ using MyWealth.Domain.ValueObjects;
 namespace MyWealth.Domain.Entities;
 
 /// <summary>
-/// Aggregate root for a Customer-owned account. Holdings live inside this aggregate.
-/// Transactions are added by a later slice.
+/// Aggregate root for a Customer-owned account. Holdings and Transactions live inside this aggregate.
 /// </summary>
 public class Account : BaseAuditableEntity
 {
@@ -13,6 +12,7 @@ public class Account : BaseAuditableEntity
     public const int CurrencyLength = 3;
 
     private readonly List<Holding> _holdings = [];
+    private readonly List<Transaction> _transactions = [];
 
     public int TenantId { get; private set; }
 
@@ -27,6 +27,8 @@ public class Account : BaseAuditableEntity
     public string Currency { get; private set; } = null!;
 
     public IReadOnlyCollection<Holding> Holdings => _holdings.AsReadOnly();
+
+    public IReadOnlyCollection<Transaction> Transactions => _transactions.AsReadOnly();
 
     public bool IsLiability => Type == AccountType.Credit;
 
@@ -152,9 +154,119 @@ public class Account : BaseAuditableEntity
             return false;
         }
 
+        if (_transactions.Any(t => t.HoldingId == holdingId))
+        {
+            throw new InvalidOperationException("Cannot delete a holding that still has historical transactions.");
+        }
+
         _holdings.Remove(holding);
         AddDomainEvent(new HoldingChangedEvent(this, holding));
         return true;
+    }
+
+    public Transaction Post(
+        TransactionType type,
+        DateOnly bookedOn,
+        Money amount,
+        int? holdingId,
+        decimal? quantity,
+        string? note)
+    {
+        EnsureWritable();
+        ArgumentNullException.ThrowIfNull(amount);
+
+        if (!Enum.IsDefined(type))
+        {
+            throw new ArgumentException("Type is not a valid transaction type.", nameof(type));
+        }
+
+        if (amount.Amount <= 0)
+        {
+            throw new ArgumentException("Amount must be greater than zero.", nameof(amount));
+        }
+
+        if (amount.Currency != Currency)
+        {
+            throw new ArgumentException("Amount currency must match the account currency.", nameof(amount));
+        }
+
+        var isTrade = type is TransactionType.Buy or TransactionType.Sell;
+        Holding? holding = null;
+
+        if (isTrade)
+        {
+            if (holdingId is null or <= 0)
+            {
+                throw new ArgumentException("Holding is required for Buy and Sell.", nameof(holdingId));
+            }
+
+            if (quantity is null or <= 0)
+            {
+                throw new ArgumentException("Quantity must be greater than zero for Buy and Sell.", nameof(quantity));
+            }
+
+            holding = _holdings.SingleOrDefault(h => h.Id == holdingId.Value);
+            if (holding is null)
+            {
+                throw new ArgumentException("Holding must belong to this account.", nameof(holdingId));
+            }
+
+            if (type == TransactionType.Sell && quantity.Value > holding.Quantity)
+            {
+                throw new ArgumentException("Sell quantity cannot exceed the holding quantity.", nameof(quantity));
+            }
+        }
+        else
+        {
+            if (holdingId is not null)
+            {
+                throw new ArgumentException("Holding must be omitted for cash transactions.", nameof(holdingId));
+            }
+
+            if (quantity is not null)
+            {
+                throw new ArgumentException("Quantity must be omitted for cash transactions.", nameof(quantity));
+            }
+        }
+
+        var transaction = Transaction.Create(
+            TenantId,
+            Id,
+            type,
+            bookedOn,
+            amount,
+            holdingId,
+            quantity,
+            note);
+
+        _transactions.Add(transaction);
+        AddDomainEvent(new TransactionPostedEvent(this, transaction));
+
+        if (holding is not null)
+        {
+            ApplyTrade(holding, type, quantity!.Value, amount.Amount);
+            AddDomainEvent(new HoldingChangedEvent(this, holding));
+        }
+
+        return transaction;
+    }
+
+    private static void ApplyTrade(Holding holding, TransactionType type, decimal quantity, decimal amount)
+    {
+        if (type == TransactionType.Buy)
+        {
+            holding.SetQuantity(holding.Quantity + quantity);
+            holding.SetCostBasisAmount(holding.CostBasis.Amount + amount);
+            return;
+        }
+
+        var remainingQty = holding.Quantity - quantity;
+        var remainingCost = remainingQty == 0m
+            ? 0m
+            : holding.CostBasis.Amount * remainingQty / holding.Quantity;
+
+        holding.SetQuantity(remainingQty);
+        holding.SetCostBasisAmount(remainingCost);
     }
 
     private void SetName(string name)
