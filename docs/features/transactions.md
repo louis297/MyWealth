@@ -1,6 +1,6 @@
 ---
 title: "Transactions"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-24
 related:
@@ -269,14 +269,14 @@ None — API only for this slice. Account detail or a dedicated transaction list
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] Domain `Transaction` entity + `TransactionType` enum + invariants + average-cost logic on Account
-- [ ] EF configuration (FKs, indexes) + EnsureCreated / seed updates if needed
-- [ ] CreateTransaction / GetTransactions / GetTransactionById + validators
-- [ ] Harden DeleteHolding with reference check
-- [ ] Endpoints under `/transactions`
-- [ ] Tests
-- [ ] Parent docs updated (domain-model if needed, database-design, api-design, function-plan, features/README)
+- [x] Feature spec accepted
+- [x] Domain `Transaction` entity + `TransactionType` enum + invariants + average-cost logic on Account
+- [x] EF configuration (FKs, indexes) + EnsureCreated / seed updates if needed
+- [x] CreateTransaction / GetTransactions / GetTransactionById + validators
+- [x] Harden DeleteHolding with reference check
+- [x] Endpoints under `/transactions`
+- [x] Tests
+- [x] Parent docs updated (domain-model if needed, database-design, api-design, function-plan, features/README)
 
 ## 12. Open questions
 
@@ -291,4 +291,5 @@ None — API only for this slice. Account detail or a dedicated transaction list
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Implemented. Top-level `/transactions` create/list/get for TenantAdmin + Adviser. Append-only. Buy/Sell average-cost inside Account. Cash types leave Holdings untouched. Holding-delete guard landed. Amount always > 0. Future BookedOn allowed. Create returns id only. |
 | 2026-08-24 | Created from discussion. Locked: append-only, top-level routes, Amount always > 0, future BookedOn allowed, create returns id only, no holdingId list filter, average-cost adjustment inside Account aggregate, Holding-delete guard delivered in this slice. |

@@ -324,7 +324,7 @@ Key fields / rules:
 - `CostBasis` (Money) — currency must match the parent Account and is immutable after create
 - Parent Account must be `Status = Active` for any write; Closed → 400
 - Visibility follows the parent Account exactly (same TenantAdmin / Adviser scoping)
-- Physical DELETE is allowed in this slice; the guard that prevents deleting a Holding that still has historical Transactions will be added with the Transactions feature
+- Physical DELETE is refused when the Holding still has historical Transactions (400)
 
 POST body:
 
@@ -530,6 +530,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Transactions slice shipped: top-level `/transactions` list/get/create (append-only). Buy/Sell adjust Holding via average cost. Holding DELETE blocked when historical transactions exist. |
 | 2026-08-24 | Holdings slice shipped: nested `/accounts/{accountId}/holdings` list/get/create/partial PUT/delete. CostBasis.Currency immutable and must match Account. Closed Account writes 400; reads remain 200. |
 | 2026-08-24 | Accounts slice shipped: `/accounts` list/get/create/update + `POST /{id}/close`. Enums serialized as strings. Customer `DELETE` / disable now returns 400 while Active accounts remain. |
 | 2026-08-24 | Accounts slice: detailed `/accounts` endpoints (list with status/customerId/search, create, partial PUT Name+Type, dedicated POST close). Currency immutable, close permanent and does not force-clear children. Linked to accounts feature spec. |
