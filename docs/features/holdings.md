@@ -1,6 +1,6 @@
 ---
 title: "Holdings"
-status: draft
+status: accepted
 owner: ""
 last_updated: 2026-08-24
 related:
@@ -121,7 +121,7 @@ Columns (aligned with [database-design.md](../database-design.md)):
 
 - `Id` int identity PK
 - `TenantId` int not null (**FK → Tenants**, ON DELETE RESTRICT)
-- `AccountId` int not null (**FK → Accounts**, ON DELETE RESTRICT)
+- `AccountId` int not null (**FK → Accounts**, ON DELETE CASCADE)
 - `Instrument_Name` nvarchar(200) not null
 - `Instrument_Symbol` nvarchar(50) null
 - `Quantity` decimal(18,8) not null
@@ -138,7 +138,7 @@ Notes:
 
 - Instrument and Money are mapped as owned types / complex properties.
 - EnsureCreated is still used; no EF migration in this slice unless the project switches later.
-- No cascade delete from Account → Holdings (Closed Accounts retain history).
+- Account → Holdings is CASCADE because Holdings belong exclusively to the Account aggregate. Close is a status change, not a SQL delete, so historical rows are retained.
 
 Update [database-design.md](../database-design.md) in the same change if any column precision or index needs tightening.
 
@@ -240,14 +240,14 @@ None — API only for this slice. Account detail pages in the Adviser Portal can
 
 ## 11. Rollout
 
-- [ ] Feature spec accepted
-- [ ] Domain `Holding` entity + `Instrument` value object + invariants
-- [ ] EF configuration (owned types, FKs, indexes) + EnsureCreated / seed updates if needed
-- [ ] Commands / queries / validators
-- [ ] Endpoints under `/accounts/{accountId}/holdings`
-- [ ] Tests
-- [ ] Parent docs updated (domain-model if needed, database-design, api-design, function-plan, features/README)
-- [ ] Note left for Transactions feature: add “cannot delete Holding that still has historical Transactions” guard
+- [x] Feature spec accepted
+- [x] Domain `Holding` entity + `Instrument` value object + invariants
+- [x] EF configuration (owned types, FKs, indexes) + EnsureCreated / seed updates if needed
+- [x] Commands / queries / validators
+- [x] Endpoints under `/accounts/{accountId}/holdings`
+- [x] Tests
+- [x] Parent docs updated (domain-model if needed, database-design, api-design, function-plan, features/README)
+- [x] Note left for Transactions feature: add “cannot delete Holding that still has historical Transactions” guard
 
 ## 12. Open questions
 
@@ -261,4 +261,5 @@ None — API only for this slice. Account detail pages in the Adviser Portal can
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Implemented. Nested `/accounts/{accountId}/holdings` for TenantAdmin + Adviser. Quantity ≥ 0 (incl. zero). CostBasis.Currency immutable and must match Account. Physical DELETE allowed; Transactions slice will add the historical-Tx guard. Account → Holdings FK is CASCADE (close is not a SQL delete). Sample Apple holding seeded. |
 | 2026-08-24 | Created from discussion. Locked: nested routes only, no list search/pagination, Currency immutable, Quantity ≥ 0 (incl. zero), physical DELETE allowed now with future Transactions guard documented, visibility identical to Accounts. |

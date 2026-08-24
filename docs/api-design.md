@@ -14,6 +14,7 @@ related:
   - features/advisers.md
   - features/customers.md
   - features/accounts.md
+  - features/holdings.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
   - adr/0004-money-as-decimal-with-currency.md
   - adr/0005-shared-database-tenantid-isolation.md
@@ -529,6 +530,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Holdings slice shipped: nested `/accounts/{accountId}/holdings` list/get/create/partial PUT/delete. CostBasis.Currency immutable and must match Account. Closed Account writes 400; reads remain 200. |
 | 2026-08-24 | Accounts slice shipped: `/accounts` list/get/create/update + `POST /{id}/close`. Enums serialized as strings. Customer `DELETE` / disable now returns 400 while Active accounts remain. |
 | 2026-08-24 | Accounts slice: detailed `/accounts` endpoints (list with status/customerId/search, create, partial PUT Name+Type, dedicated POST close). Currency immutable, close permanent and does not force-clear children. Linked to accounts feature spec. |
 | 2026-08-23 | Customers slice: `/customers` CRUD + soft-disable for TenantAdmin and Adviser. Paginated list (Id/Name/Email search), CustomerVm with adviser summary, Domain-only create (no Identity), Adviser self-assignment and 404 visibility scoping. Linked to customers feature spec. |
