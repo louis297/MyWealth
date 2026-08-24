@@ -36,7 +36,7 @@ public class CreateHoldingCommandHandler : IRequestHandler<CreateHoldingCommand,
 
     public async Task<int> Handle(CreateHoldingCommand request, CancellationToken cancellationToken)
     {
-        var account = await AccountVisibility.FindVisibleAccountWithHoldingsAsync(
+        var account = await AccountVisibility.FindVisibleAccountAggregateAsync(
             _context, _user, request.AccountId, cancellationToken);
 
         if (account is null)

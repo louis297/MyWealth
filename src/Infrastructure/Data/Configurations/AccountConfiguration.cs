@@ -52,5 +52,13 @@ public class AccountConfiguration : IEntityTypeConfiguration<Account>
 
         builder.Navigation(a => a.Holdings)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(a => a.Transactions)
+            .WithOne()
+            .HasForeignKey(t => t.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Navigation(a => a.Transactions)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

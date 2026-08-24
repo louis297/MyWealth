@@ -252,7 +252,7 @@ None — API only for this slice. Account detail pages in the Adviser Portal can
 ## 12. Open questions
 
 - None remaining after 2026-08-24 decisions.
-  - DELETE of a Holding that has historical Transactions is **not** allowed; the guard will be implemented together with the Transactions feature (documented now).
+  - DELETE of a Holding that has historical Transactions is **not** allowed; the guard shipped with the Transactions feature.
   - Nested list has **no** search / pagination.
   - CostBasis.Currency is immutable and must always equal Account.Currency.
   - Quantity = 0 is allowed on create.
@@ -261,5 +261,6 @@ None — API only for this slice. Account detail pages in the Adviser Portal can
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Transactions slice delivered the historical-Tx delete guard: `DELETE /accounts/{accountId}/holdings/{id}` returns 400 when any Transaction references the Holding. |
 | 2026-08-24 | Implemented. Nested `/accounts/{accountId}/holdings` for TenantAdmin + Adviser. Quantity ≥ 0 (incl. zero). CostBasis.Currency immutable and must match Account. Physical DELETE allowed; Transactions slice will add the historical-Tx guard. Account → Holdings FK is CASCADE (close is not a SQL delete). Sample Apple holding seeded. |
 | 2026-08-24 | Created from discussion. Locked: nested routes only, no list search/pagination, Currency immutable, Quantity ≥ 0 (incl. zero), physical DELETE allowed now with future Transactions guard documented, visibility identical to Accounts. |
