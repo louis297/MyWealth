@@ -1,12 +1,22 @@
-import { NavLink, Outlet } from 'react-router-dom'
-import { useAppDispatch } from '../app/hooks'
-import { logout } from '../features/auth/authSlice'
+import { Navigate, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useAppDispatch, useAppSelector } from '../app/hooks'
+import { logout, selectToken } from '../features/auth/authSlice'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { NAV_ITEMS } from './navItems'
 
 export function MainLayout() {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const token = useAppSelector(selectToken)
   const currentUser = useCurrentUser()
+
+  if (!token) {
+    return <Navigate to="/login" replace />
+  }
+
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => currentUser !== null && item.roles.includes(currentUser.role),
+  )
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
@@ -15,7 +25,7 @@ export function MainLayout() {
           MyWealth
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-2">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -41,6 +51,7 @@ export function MainLayout() {
             className="rounded border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
             onClick={() => {
               dispatch(logout())
+              navigate('/login')
             }}
           >
             Log out
