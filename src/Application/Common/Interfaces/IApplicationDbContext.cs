@@ -12,6 +12,8 @@ public interface IApplicationDbContext
 
     DbSet<Holding> Holdings { get; }
 
+    DbSet<Transaction> Transactions { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 
     Task ExecuteInTransactionAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken);
