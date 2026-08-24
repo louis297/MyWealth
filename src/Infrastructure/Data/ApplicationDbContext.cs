@@ -22,6 +22,8 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>, IAppli
 
     public DbSet<User> DomainUsers => Set<User>();
 
+    public DbSet<Account> Accounts => Set<Account>();
+
     DbSet<User> IApplicationDbContext.Users => DomainUsers;
 
     public async Task ExecuteInTransactionAsync(
@@ -53,5 +55,8 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>, IAppli
 
         builder.Entity<User>()
             .HasQueryFilter(u => CurrentTenantId == null || u.TenantId == CurrentTenantId);
+
+        builder.Entity<Account>()
+            .HasQueryFilter(a => CurrentTenantId == null || a.TenantId == CurrentTenantId);
     }
 }
