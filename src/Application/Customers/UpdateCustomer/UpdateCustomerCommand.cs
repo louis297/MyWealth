@@ -1,7 +1,9 @@
+using FluentValidation.Results;
 using MyWealth.Application.Common.Interfaces;
 using MyWealth.Application.Common.Security;
 using MyWealth.Domain.Entities;
 using NotFoundException = MyWealth.Application.Common.Exceptions.NotFoundException;
+using ValidationException = MyWealth.Application.Common.Exceptions.ValidationException;
 
 namespace MyWealth.Application.Customers.UpdateCustomer;
 
@@ -40,7 +42,18 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
 
         if (request.IsEnabled == false)
         {
-            user.Disable();
+            var activeAccounts = await CustomerVisibility.CountActiveAccountsAsync(
+                _context, user.Id, cancellationToken);
+
+            if (activeAccounts > 0)
+            {
+                throw new ValidationException(
+                [
+                    new ValidationFailure("Id", "Cannot disable a customer who still has active accounts.")
+                ]);
+            }
+
+            user.Disable(activeAccountCount: activeAccounts);
         }
         else if (request.IsEnabled == true)
         {
