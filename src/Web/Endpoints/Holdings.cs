@@ -68,7 +68,7 @@ public class Holdings : IEndpointGroup
     }
 
     [EndpointSummary("Delete holding")]
-    [EndpointDescription("Physically deletes a holding. Parent account must be Active. TenantAdmin and Adviser.")]
+    [EndpointDescription("Physically deletes a holding. Parent account must be Active. Refused if the holding still has historical transactions. TenantAdmin and Adviser.")]
     public static async Task<NoContent> DeleteHolding(ISender sender, int accountId, int id)
     {
         await sender.Send(new DeleteHoldingCommand { AccountId = accountId, Id = id });

@@ -220,3 +220,53 @@ DELETE {{Web_HostAddress}}/customers/1
 Authorization: Bearer {{BearerToken}}
 
 ###
+
+# GET /transactions
+GET {{Web_HostAddress}}/transactions?page=1&pageSize=20
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# GET /transactions/{id}
+GET {{Web_HostAddress}}/transactions/1
+Authorization: Bearer {{BearerToken}}
+
+###
+
+# POST /transactions (Buy)
+POST {{Web_HostAddress}}/transactions
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "accountId": 1,
+  "holdingId": 1,
+  "bookedOn": "2026-08-20",
+  "type": "Buy",
+  "amount": {
+    "amount": 18500.00,
+    "currency": "NZD"
+  },
+  "quantity": 100,
+  "note": "Initial purchase"
+}
+
+###
+
+# POST /transactions (Dividend)
+POST {{Web_HostAddress}}/transactions
+Authorization: Bearer {{BearerToken}}
+Content-Type: application/json
+
+{
+  "accountId": 1,
+  "bookedOn": "2026-08-20",
+  "type": "Dividend",
+  "amount": {
+    "amount": 120.50,
+    "currency": "NZD"
+  },
+  "note": "Q2 dividend"
+}
+
+###
