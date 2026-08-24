@@ -60,7 +60,7 @@ These match the current Domain project plus accepted ADRs. Change them only with
 
 ## 3. Current model
 
-Tenant and User aggregates have landed. Login still lives in Infrastructure (`ApplicationUser`); Domain `User` links to it via `IdentityUserId` (no hard FK).
+Tenant, User, and Account aggregates have landed. Login still lives in Infrastructure (`ApplicationUser`); Domain `User` links to it via `IdentityUserId` (no hard FK). Holdings and Transactions are not yet in the Domain project.
 
 ```mermaid
 classDiagram
@@ -91,11 +91,37 @@ classDiagram
     Adviser
     Customer
   }
+  class Account {
+    int TenantId
+    int CustomerId
+    string Name
+    AccountType Type
+    AccountStatus Status
+    string Currency
+  }
+  class AccountType {
+    <<enumeration>>
+    Bank
+    Cash
+    Brokerage
+    Property
+    Credit
+    Other
+  }
+  class AccountStatus {
+    <<enumeration>>
+    Active
+    Closed
+  }
   BaseAuditableEntity <|-- Tenant
   BaseAuditableEntity <|-- User
+  BaseAuditableEntity <|-- Account
   User --> UserRole : has
+  Account --> AccountType : has
+  Account --> AccountStatus : has
   Tenant "1" --> "*" User
   User "1" --> "*" User : AdviserId
+  User "1" --> "*" Account : CustomerId
 ```
 
 | Type | Kind | File |
@@ -106,10 +132,16 @@ classDiagram
 | `UserCreatedEvent` / `UserEnabledEvent` / `UserDisabledEvent` / `CustomerReassignedEvent` | Domain event | `src/Domain/Events/` |
 | `UserRole` | Enum | `src/Domain/Enums/UserRole.cs` |
 | `Roles.*` | Constants | `src/Domain/Constants/Roles.cs` |
+| `Account` | Aggregate root | `src/Domain/Entities/Account.cs` |
+| `AccountOpenedEvent` / `AccountClosedEvent` | Domain event | `src/Domain/Events/` |
+| `AccountType` | Enum | `src/Domain/Enums/AccountType.cs` |
+| `AccountStatus` | Enum | `src/Domain/Enums/AccountStatus.cs` |
 
 `Tenant.Create` raises `TenantCreatedEvent`. `Enable` / `Disable` raise the matching event only when the flag actually changes.
 
-`User` factories cover all four roles. TenantAdmins are managed via `/tenant-admins` (SystemAdmin). Advisers are managed via `/advisers` (TenantAdmin). Customers are managed via `/customers` (TenantAdmin + Adviser; Advisers only see and assign their own). Creating a TenantAdmin or Adviser also creates an Identity login; creating a Customer does not. `ReassignAdviser` raises `CustomerReassignedEvent` when `AdviserId` changes. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. Disabling the last TenantAdmin of a Tenant is allowed. No event handlers in this slice.
+`User` factories cover all four roles. TenantAdmins are managed via `/tenant-admins` (SystemAdmin). Advisers are managed via `/advisers` (TenantAdmin). Customers are managed via `/customers` (TenantAdmin + Adviser; Advisers only see and assign their own). Creating a TenantAdmin or Adviser also creates an Identity login; creating a Customer does not. `ReassignAdviser` raises `CustomerReassignedEvent` when `AdviserId` changes. An Adviser cannot be disabled while any Customer still references them as `AdviserId`. A Customer cannot be disabled while any **Active** Account remains. Disabling the last TenantAdmin of a Tenant is allowed. No event handlers in this slice.
+
+`Account.Open` copies `TenantId` from the Customer, fixes Currency, and raises `AccountOpenedEvent`. `Close` is a one-way `Active → Closed` transition (`AccountClosedEvent`); it does not require or clear child Holdings/Transactions (those slices have not shipped). `EnsureWritable()` is the hook later Holding/Transaction writes will call. There is no physical delete.
 
 ## 4. Target model (MVP)
 
@@ -279,6 +311,7 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
   - Customer ⇒ `AdviserId` is required and the target User has `Role == Adviser` and the same `TenantId`
   - Adviser / TenantAdmin ⇒ `AdviserId` is null
   - A User cannot be deleted while Customers still reference it as Adviser
+  - A Customer cannot be disabled while any Active Account remains
 - Domain events:
   - `UserCreated`
   - `UserDisabled`
@@ -309,14 +342,14 @@ A Transaction is posted on **one** Account. MVP does not create a paired leg on 
   - `Type == Credit` ⇒ the account is treated as a liability for net worth
   - `Status == Closed` ⇒ no new Transactions and no Holding create/edit/delete
   - Every `Money` on child Holdings and Transactions uses this account's currency
-  - Delete either cascades Holdings + Transactions or is refused while they exist (feature spec must choose; default: cascade)
+  - No physical delete. Close is permanent (`Active` → `Closed`) and retains child Holdings/Transactions for history
 - Domain events:
   - `AccountOpened`
   - `AccountClosed`
   - `TransactionPosted`
   - `HoldingChanged`
 - Application use cases:
-  - List by Customer / Detail (total value, holdings overview, recent transactions) / Create / Edit name·type·status / Delete
+  - List (pagination, status, customerId, search) / Detail / Create / Edit name·type / Close (`POST /accounts/{id}/close`)
 - Persistence notes:
   - Table `Accounts`. Index `(TenantId, CustomerId)`
   - Child collections are loaded with the aggregate for writes
@@ -494,7 +527,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 - Tenant provisioning UI: seed only, or a System Admin screen?
 - May a Tenant Admin change a Customer's Adviser after creation? This model **allows** it so Advisers can be deleted after reassignment.
-- Account “delete”: resolved by Accounts feature — permanent close (`Status = Closed`) with no forced clear of Holdings/Transactions; children retained for history.
+- Account “delete”: **resolved** — permanent close (`Status = Closed`) with no forced clear of Holdings/Transactions; children retained for history. No physical delete.
 - Is `Interest` ever an outflow (loan interest)? MVP treats it as inflow.
 - When Customer portal is introduced, should existing Customer rows automatically receive login capability, or require an explicit “enable portal access” action?
 - Glossary still needs a small alignment pass (Customer is one of the four roles living in the User table).
@@ -504,6 +537,7 @@ Still open (resolve in a feature spec or a follow-up edit of this file):
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | §3 Account aggregate shipped via `/accounts`. Close is permanent (`POST /accounts/{id}/close`). Customer disable refused while Active accounts remain. Holdings/Transactions still target-model only. |
 | 2026-08-24 | Accounts feature spec: confirmed Account aggregate invariants (Currency immutable, Status Active→Closed only, no forced clear of children on close). AccountType / AccountStatus values already present. |
 | 2026-08-23 | §3 Customer CRUD shipped via `/customers`. `CustomerReassignedEvent` added. Creating a Customer remains Domain-only (no Identity). |
 | 2026-08-23 | §3 current model includes User. Email uniqueness locked as global (Demo). Advisers slice ships Domain User + Identity link via `IdentityUserId`. |

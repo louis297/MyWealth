@@ -2,7 +2,7 @@
 title: "Customers"
 status: accepted
 owner: ""
-last_updated: 2026-08-23
+last_updated: 2026-08-24
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -11,6 +11,7 @@ related:
   - ../features/identity-auth.md
   - ../features/tenants.md
   - ../features/advisers.md
+  - ../features/accounts.md
   - ../adr/0005-shared-database-tenantid-isolation.md
   - ../adr/0006-email-password-jwt-authentication.md
   - ../adr/0007-baseentity-primary-key-int.md
@@ -50,7 +51,7 @@ TenantAdmin and Adviser can onboard Customers (must bind to an Adviser), list th
 - Creating or managing TenantAdmin or Adviser accounts
 - Physical deletion of any User
 - Account / Holding / Transaction operations (next feature)
-- Soft-disable guard that checks for existing Accounts (deferred to the Accounts feature)
+- Soft-disable guard that checks for existing Accounts (delivered by the Accounts feature: refuse disable while any **Active** account remains; Closed accounts do not block)
 - UI pages (API only for this slice)
 - Password or Identity-user creation for Customers
 - SystemAdmin managing any business users (Option A remains locked)
@@ -78,7 +79,7 @@ TenantAdmin and Adviser can onboard Customers (must bind to an Adviser), list th
 | R8 | Re-enable (`IsEnabled = true`) has no extra preconditions. |
 | R9 | List endpoint reuses the pagination / filter / search shape already established by Tenants and Advisers. |
 | R10 | Domain `User` rows for Customers always have `Role = Customer`, non-null `TenantId`, and non-null `AdviserId`. |
-| R11 | Soft-disable of a Customer does **not** check for existing Accounts in this feature. That guard (if required) belongs to the Accounts feature. |
+| R11 | Soft-disable of a Customer is refused while any **Active** Account remains (delivered by the Accounts feature). Closed accounts do not block disable. |
 
 ## 5. Domain
 
@@ -135,7 +136,7 @@ Notes:
 | --- | --- | --- | --- |
 | Command | CreateCustomer | int (new Id) | Name, Email, AdviserId required; Email unique; Adviser valid & same tenant & enabled; Adviser caller may only target self |
 | Command | UpdateCustomer | — | Name optional; IsEnabled optional; AdviserId optional but must be valid if supplied; Adviser caller may only target self |
-| Command | DisableCustomer | — | No Account-existence check in this feature |
+| Command | DisableCustomer | — | Refused while the Customer has any Active Account (Accounts feature) |
 | Query | GetCustomers | paginated list | page, pageSize, isEnabled?, search? + automatic role-based visibility filter |
 | Query | GetCustomerById | CustomerVm (404 if missing or out of scope) | |
 
@@ -159,7 +160,7 @@ CreateCustomer is a simple Domain insert (no Identity transaction required).
 | GET | `/customers/{id}` | TenantAdmin, Adviser | 200 + CustomerVm | 401, 403, 404 | Single Customer (visibility-scoped). Includes basic Adviser info. |
 | POST | `/customers` | TenantAdmin, Adviser | 201 + id | 400, 401, 403 | Create Customer (no login). AdviserId required. |
 | PUT | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Update Name and/or IsEnabled and/or reassign AdviserId. |
-| DELETE | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Soft-disable (`IsEnabled = false`). |
+| DELETE | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Soft-disable (`IsEnabled = false`). 400 if any Active Account remains. |
 
 Query parameters for list (identical shape to Tenants / Advisers):
 
@@ -221,7 +222,7 @@ None — API only for this slice. Customer list / create / edit pages in the Adv
 
 - None remaining after 2026-08-23 decisions.
   - Adviser callers may only assign Customers to themselves
-  - Soft-disable does **not** check for Accounts in this feature (deferred to Accounts feature)
+  - Soft-disable is refused while any Active Account remains (delivered by the Accounts feature; Closed accounts do not block)
   - GET detail returns basic Customer + Adviser summary only (no Account overview yet)
   - Email remains globally unique
   - Soft-disable via DELETE, list shape, 404 scoping all consistent with Advisers
@@ -230,5 +231,6 @@ None — API only for this slice. Customer list / create / edit pages in the Adv
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Accounts feature delivered the Active-account disable guard: `DELETE` / `PUT isEnabled=false` returns 400 while the Customer still has Active accounts. Closed accounts do not block. |
 | 2026-08-23 | Implemented. TenantAdmin + Adviser CRUD under `/customers`. Create is Domain-only (no Identity). Advisers see and assign only their own Customers (404 for others; 400 if assigning to someone else). Soft-disable via DELETE with no Account guard. `CustomerReassignedEvent` on AdviserId change. |
 | 2026-08-23 | Created from discussion. Locked: Adviser self-assignment only, no Account guard on disable (deferred), global unique Email, no Identity user for Customer, soft-disable via DELETE, visibility scoping (TenantAdmin full / Adviser own only). |

@@ -2,7 +2,7 @@
 title: API design
 status: draft
 owner: ""
-last_updated: 2026-08-23
+last_updated: 2026-08-24
 related:
   - architecture.md
   - function-plan.md
@@ -13,6 +13,7 @@ related:
   - features/tenants.md
   - features/advisers.md
   - features/customers.md
+  - features/accounts.md
   - adr/0001-use-dotnet-aspire-and-clean-architecture.md
   - adr/0004-money-as-decimal-with-currency.md
   - adr/0005-shared-database-tenantid-isolation.md
@@ -221,7 +222,7 @@ See feature spec: [advisers](features/advisers.md).
 | GET | `/customers/{id}` | TenantAdmin, Adviser | 200 + CustomerVm | 401, 403, 404 | Single Customer (visibility-scoped; out-of-scope and non-Customer ids are 404). Includes assigned Adviser id and name. No Account overview in this slice. |
 | POST | `/customers` | TenantAdmin, Adviser | 201 + `{ "id": n }` | 400, 401, 403 | Create Domain User only (no Identity login). Email globally unique. `AdviserId` required. |
 | PUT | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Update Name and/or IsEnabled and/or reassign AdviserId. Route `{id}` must match body `id`. |
-| DELETE | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Soft-disable (`IsEnabled = false`). No Account-existence check in this slice. |
+| DELETE | `/customers/{id}` | TenantAdmin, Adviser | 204 | 400, 401, 403, 404 | Soft-disable (`IsEnabled = false`). 400 if the Customer still has any Active Account. Closed accounts do not block. |
 
 Query parameters for list (same shape as Tenants / Advisers):
 
@@ -528,6 +529,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-24 | Accounts slice shipped: `/accounts` list/get/create/update + `POST /{id}/close`. Enums serialized as strings. Customer `DELETE` / disable now returns 400 while Active accounts remain. |
 | 2026-08-24 | Accounts slice: detailed `/accounts` endpoints (list with status/customerId/search, create, partial PUT Name+Type, dedicated POST close). Currency immutable, close permanent and does not force-clear children. Linked to accounts feature spec. |
 | 2026-08-23 | Customers slice: `/customers` CRUD + soft-disable for TenantAdmin and Adviser. Paginated list (Id/Name/Email search), CustomerVm with adviser summary, Domain-only create (no Identity), Adviser self-assignment and 404 visibility scoping. Linked to customers feature spec. |
 | 2026-08-23 | Advisers slice: `/advisers` CRUD + soft-disable for TenantAdmin. Paginated list (Id/Name/Email search), AdviserVm, transactional create with Identity user, DELETE customer-reassignment guard. Linked to advisers feature spec. |
