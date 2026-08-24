@@ -61,6 +61,24 @@ internal static class AccountVisibility
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
     }
 
+    public static async Task<Account?> FindVisibleAccountWithHoldingsAsync(
+        IApplicationDbContext context,
+        IUser user,
+        int id,
+        CancellationToken cancellationToken)
+    {
+        IQueryable<Account> accounts = context.Accounts.Include(a => a.Holdings);
+
+        if (IsAdviser(user))
+        {
+            var adviserDomainUserId = await GetCallerDomainUserIdAsync(context, user, cancellationToken) ?? -1;
+            accounts = accounts.Where(a =>
+                context.Users.Any(c => c.Id == a.CustomerId && c.AdviserId == adviserDomainUserId));
+        }
+
+        return await accounts.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+    }
+
     public static IQueryable<AccountVm> ProjectToVm(IQueryable<Account> accounts, IQueryable<User> users)
         => from account in accounts
            join customer in users on account.CustomerId equals customer.Id
