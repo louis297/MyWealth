@@ -57,6 +57,8 @@ Goal: every subsequent page can call the API safely and sits inside a consistent
 
 ### MainLayout
 
+Implemented. See §2.
+
 - Left sidebar + top bar (current user display name + role)
 - Menu visibility driven exclusively by the role table in [adviser-portal.md](adviser-portal.md) §4 and the payload from `/users/me`
 - Do not hard-code role checks in multiple places
@@ -91,13 +93,20 @@ Goal: every subsequent page can call the API safely and sits inside a consistent
 
 ## 2. MainLayout + role-based navigation
 
-- Drive menu items from the role table in [adviser-portal.md](adviser-portal.md)
+Implemented in `src/AdviserPortal/src/layouts/`.
+
+- Drive menu items from `NAV_ITEMS` (the role table in [adviser-portal.md](adviser-portal.md)). Sidebar visibility and URL access both use this table — do not add a second role list.
 - SystemAdmin surface in MVP is intentionally thin (Dashboard + Profile only)
 - TenantAdmin sees Advisers menu; Adviser does not
-- Highlight the active route
-- Top bar shows current user’s display name and role
+- Highlight the active route (`NavLink`; `end` only on `/` so nested paths stay active later)
+- Top bar shows current user’s display name and role; Logout is a top-bar button, not a sidebar item
+- `AuthLayout` wraps `/login` with the MyWealth wordmark
+- Hidden-menu URLs (`/advisers` as Adviser, `/customers` as SystemAdmin) redirect to `/`. There is no dedicated 403 page.
+- Unknown paths render a 404 inside MainLayout
+- Below `md`, the sidebar is an overlay drawer; `md+` keeps the static sidebar
+- `PageHeader` in `shared/components/` is the page title chrome for placeholders and later business pages
 
-This shell must be stable before building business pages.
+This shell must stay stable while building business pages.
 
 ## 3. Dashboard (default home)
 
@@ -241,7 +250,7 @@ Follow the order already locked in [adviser-portal.md](adviser-portal.md) §8 an
 
 1. Scaffold + store + typed hooks + router + shared API client
 2. Auth end-to-end (Login, token, `/users/me`, 401, ProtectedRoute)
-3. MainLayout + role-based menu
+3. MainLayout + role-based menu (done)
 4. Dashboard
 5. Customers list & detail
 6. Accounts list & detail (including Holdings)
@@ -268,4 +277,5 @@ Rules for agents:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | MainLayout shell implemented: AuthLayout, role URL guard (redirect home), 404, mobile drawer, PageHeader. |
 | 2026-08-26 | Initial draft derived from the Chinese pure-text discussion. Aligns with adviser-portal page inventory and frontend-conventions. |

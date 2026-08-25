@@ -137,7 +137,7 @@ Adviser Portal (MVP) now implements login and session handling. Profile update a
 - **Session restore**: JWT in `localStorage`; `/users/me` is loaded on bootstrap. Role, display name and tenantId come from that payload, not from parsing the JWT.
 - **401** on API calls (except login): clear token and current-user state, redirect to `/login`.
 - **Logout**: `POST /auth/logout` (best-effort), then discard the client token and return to `/login`.
-- **MainLayout** top bar shows display name and role; menu visibility is driven by the current-user role (SystemAdmin: Dashboard + Profile; TenantAdmin: all items; Adviser: all except Advisers).
+- **MainLayout** top bar shows display name and role; menu visibility is driven by the current-user role (SystemAdmin: Dashboard + Profile; TenantAdmin: all items; Adviser: all except Advisers). The shell also includes `AuthLayout` for `/login`, a 404 inside the protected layout, and a URL-level role guard that redirects hidden-menu paths to Dashboard. There is no dedicated 403 page.
 
 ## 10. Tests
 
@@ -167,6 +167,7 @@ Adviser Portal (MVP) now implements login and session handling. Profile update a
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal shell: AuthLayout, 404, role URL guard (redirect home). |
 | 2026-08-26 | Adviser Portal login + session UI implemented. Profile / change-password screens still deferred. |
 | 2026-08-21 | Implemented Option B: `UserRole` enum on `ApplicationUser`; Identity Roles removed. |
 | 2026-08-21 | **Option B locked in**: Role is a property/column on ApplicationUser, not an ASP.NET Identity Role. |
