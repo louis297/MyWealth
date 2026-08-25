@@ -7,6 +7,7 @@ export type CurrentUser = {
   role: UserRole
   tenantId: number | null
   isEnabled: boolean
+  domainUserId: number | null
 }
 
 export type LoginRequest = {

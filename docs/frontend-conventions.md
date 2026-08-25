@@ -130,6 +130,7 @@ Protected route pattern:
 - **Raw Tailwind** is the MVP styling approach. No component library (shadcn or otherwise) until an explicit decision is recorded here.
 - Prefer composition of small shared components (`shared/components/`) over giant page-level class strings when the same pattern repeats.
 - `PageHeader` is the first shared primitive; use it for page titles.
+- List pages reuse `Pagination`. Destructive actions that need an extra click use `ConfirmDialog`. API 400 text is read with `shared/utils/apiError.ts`.
 - Monetary amounts are displayed with `shared/utils/formatMoney.ts` (`Intl.NumberFormat` currency style). The UI does not re-calculate business totals.
 - Keep visual design simple and consistent for a demo:
   - Clear page titles
@@ -170,6 +171,7 @@ Step 4 → commit: add Login page
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Recorded `Pagination`, `ConfirmDialog`, and `apiError` as shared list/CRUD helpers. |
 | 2026-08-26 | Recorded `formatMoney` as the shared currency display helper. |
 | 2026-08-26 | Recorded raw Tailwind for MVP; URL-level role guard (redirect home, no 403 page); `PageHeader` as first shared primitive. |
 | 2026-08-26 | Linked Frontend Implementation Notes. |

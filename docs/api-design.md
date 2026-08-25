@@ -2,7 +2,7 @@
 title: API design
 status: draft
 owner: ""
-last_updated: 2026-08-24
+last_updated: 2026-08-26
 related:
   - architecture.md
   - function-plan.md
@@ -134,7 +134,7 @@ Notes:
 | --- | --- | --- | --- | --- | --- |
 | POST | `/auth/login` | anonymous | 200 + token payload | 400, 401, **403 (Customer role)** | Email + password → JWT |
 | POST | `/auth/logout` | user | 204 | 401 | Sign out |
-| GET | `/users/me` | user | 200 + CurrentUserVm | 401 | Current user profile |
+| GET | `/users/me` | user | 200 + CurrentUserVm | 401 | Current user profile, including optional `domainUserId` |
 | PUT | `/users/me` | user | 204 | 400, 401 | Update non-password profile fields |
 | PUT | `/users/me/password` | user | 204 | 400, 401 | Change password (requires current password) |
 
@@ -144,6 +144,7 @@ Rules:
 - `PUT /users/me` may change only non-password profile fields (e.g. display name). Email, Role, TenantId and IsEnabled are immutable through this endpoint.
 - `PUT /users/me/password` requires the current password and a new password that satisfies Identity password rules.
 - JWT claims must include at least: user id, email, role, tenantId (null for SystemAdmin).
+- `GET /users/me` also returns `domainUserId` (Domain `User.Id` linked by `IdentityUserId`) when a Domain row exists; otherwise `null`. This is the id Advisers send as `adviserId` when creating a customer.
 
 See feature spec: [identity-auth](features/identity-auth.md).
 
@@ -591,6 +592,7 @@ When adding a group:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | `GET /users/me` documents optional `domainUserId` (Domain User id linked to the Identity user). |
 | 2026-08-24 | Dashboard slice shipped: `/dashboard/net-worth` + `/dashboard/allocation` (both support optional customerId). Documented VM shapes, signed-sum, Closed exclusion, Credit as liability, empty → empty array. |
 | 2026-08-24 | Dashboard feature spec drafted: `/dashboard/net-worth` + `/dashboard/allocation` (both support optional customerId). Multi-currency arrays, empty → empty array, signed-sum locked, Closed excluded, Credit = liability. API only. |
 | 2026-08-24 | Transactions slice shipped: top-level `/transactions` list/get/create (append-only). Buy/Sell adjust Holding via average cost. Holding DELETE blocked when historical transactions exist. |

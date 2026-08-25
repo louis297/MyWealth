@@ -3,7 +3,9 @@ import { AccountsPage } from '../features/accounts/AccountsPage'
 import { AdvisersPage } from '../features/advisers/AdvisersPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { ProfilePage } from '../features/auth/ProfilePage'
-import { CustomersPage } from '../features/customers/CustomersPage'
+import { CustomerCreatePage } from '../features/customers/CustomerCreatePage'
+import { CustomerDetailPage } from '../features/customers/CustomerDetailPage'
+import { CustomerListPage } from '../features/customers/CustomerListPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { TransactionsPage } from '../features/transactions/TransactionsPage'
 import { AuthLayout } from '../layouts/AuthLayout'
@@ -25,7 +27,17 @@ export const router = createBrowserRouter([
         element: <RequireNavAccess />,
         children: [
           { index: true, element: <DashboardPage /> },
-          { path: 'customers', element: <CustomersPage /> },
+          { path: 'customers', element: <CustomerListPage /> },
+          {
+            path: 'customers/new',
+            element: <CustomerCreatePage />,
+            handle: { title: 'New customer' },
+          },
+          {
+            path: 'customers/:customerId',
+            element: <CustomerDetailPage />,
+            handle: { title: 'Customer' },
+          },
           { path: 'accounts', element: <AccountsPage /> },
           { path: 'transactions', element: <TransactionsPage /> },
           { path: 'advisers', element: <AdvisersPage /> },
