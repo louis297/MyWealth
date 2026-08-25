@@ -103,7 +103,7 @@ Update [database-design.md](../database-design.md) in the same change.
 | --- | --- | --- | --- |
 | Command | LoginCommand | LoginResultVm (token + basic claims) | Email required, Password required; after Identity succeeds, reject if `Role == Customer` |
 | Command | LogoutCommand | — | — |
-| Query | GetCurrentUserQuery | CurrentUserVm | — |
+| Query | GetCurrentUserQuery | CurrentUserVm (includes optional `domainUserId`) | — |
 | Command | UpdateCurrentUserCommand | — | DisplayName (or other allowed fields) required / length rules |
 | Command | ChangePasswordCommand | — | CurrentPassword required, NewPassword required + Identity strength rules |
 
@@ -115,7 +115,7 @@ Update [database-design.md](../database-design.md) in the same change.
 | --- | --- | --- | --- | --- |
 | POST | `/auth/login` | anonymous | 200 + token payload | 400 (validation), 401 (bad credentials), **403 (Customer role)** |
 | POST | `/auth/logout` | user | 204 | 401 |
-| GET | `/users/me` | user | 200 + CurrentUserVm | 401 |
+| GET | `/users/me` | user | 200 + CurrentUserVm (includes optional `domainUserId`) | 401 |
 | PUT | `/users/me` | user | 204 | 400, 401 |
 | PUT | `/users/me/password` | user | 204 | 400, 401 |
 
@@ -134,7 +134,7 @@ Adviser Portal (MVP) now implements login and session handling. Profile update a
 - **Login** (`/login`, public): email + password. Success stores the JWT, calls `GET /users/me`, then navigates to Dashboard (`/`).
 - **403** on Customer login is shown as the same message as invalid credentials (“Invalid credentials or no access”).
 - **Protected shell**: any other route requires a token. Missing token → `/login`. Authenticated visit to `/login` → `/`.
-- **Session restore**: JWT in `localStorage`; `/users/me` is loaded on bootstrap. Role, display name and tenantId come from that payload, not from parsing the JWT.
+- **Session restore**: JWT in `localStorage`; `/users/me` is loaded on bootstrap. Role, display name, tenantId and optional `domainUserId` come from that payload, not from parsing the JWT. `domainUserId` is the Domain `User.Id` linked by `IdentityUserId`, or null when no Domain row exists.
 - **401** on API calls (except login): clear token and current-user state, redirect to `/login`.
 - **Logout**: `POST /auth/logout` (best-effort), then discard the client token and return to `/login`.
 - **MainLayout** top bar shows display name and role; menu visibility is driven by the current-user role (SystemAdmin: Dashboard + Profile; TenantAdmin: all items; Adviser: all except Advisers). The shell also includes `AuthLayout` for `/login`, a 404 inside the protected layout, and a URL-level role guard that redirects hidden-menu paths to Dashboard. There is no dedicated 403 page.
@@ -167,6 +167,7 @@ Adviser Portal (MVP) now implements login and session handling. Profile update a
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | `GET /users/me` includes optional `domainUserId` so Adviser callers can self-assign customers. |
 | 2026-08-26 | Adviser Portal shell: AuthLayout, 404, role URL guard (redirect home). |
 | 2026-08-26 | Adviser Portal login + session UI implemented. Profile / change-password screens still deferred. |
 | 2026-08-21 | Implemented Option B: `UserRole` enum on `ApplicationUser`; Identity Roles removed. |

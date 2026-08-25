@@ -2,7 +2,7 @@
 title: "Customers"
 status: accepted
 owner: ""
-last_updated: 2026-08-24
+last_updated: 2026-08-26
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -198,7 +198,14 @@ Update [api-design.md](../api-design.md) in the same change if any detail needs 
 
 ## 9. UI
 
-None — API only for this slice. Customer list / create / edit pages in the Adviser Portal can be added later once the API is stable.
+Adviser Portal (`src/AdviserPortal`) now implements Customers for TenantAdmin and Adviser.
+
+- **List** (`/customers`): search (id / name / email), enabled filter, pagination. Empty state: “No customers yet” plus a create action.
+- **Create** (`/customers/new`): name + email. TenantAdmin picks an enabled Adviser; Adviser callers are assigned to themselves via `GET /users/me` `domainUserId` (no adviser picker).
+- **Detail** (`/customers/:customerId`): name, email, enabled state, assigned Adviser. Out-of-scope ids show “not found” (404 is not distinguished from missing).
+- **Edit** on the detail page: name and (TenantAdmin only) adviser reassignment. Email is immutable in the UI, matching the API.
+- **Disable**: confirmation dialog then `DELETE`. Backend 400 text is shown when Active accounts remain. Re-enable is a separate action (`PUT isEnabled=true`).
+- **Accounts overview** on detail: read-only `GET /accounts?customerId=` table (name, type, status, currency). No navigation to account detail (Accounts UI is the next feature).
 
 ## 10. Tests
 
@@ -231,6 +238,7 @@ None — API only for this slice. Customer list / create / edit pages in the Adv
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal Customers UI: list/search/filter/pagination, create, detail with accounts overview, edit, confirm-and-disable. Advisers self-assign via `domainUserId` on `/users/me`. |
 | 2026-08-24 | Accounts feature delivered the Active-account disable guard: `DELETE` / `PUT isEnabled=false` returns 400 while the Customer still has Active accounts. Closed accounts do not block. |
 | 2026-08-23 | Implemented. TenantAdmin + Adviser CRUD under `/customers`. Create is Domain-only (no Identity). Advisers see and assign only their own Customers (404 for others; 400 if assigning to someone else). Soft-disable via DELETE with no Account guard. `CustomerReassignedEvent` on AdviserId change. |
 | 2026-08-23 | Created from discussion. Locked: Adviser self-assignment only, no Account guard on disable (deferred), global unique Email, no Identity user for Customer, soft-disable via DELETE, visibility scoping (TenantAdmin full / Adviser own only). |

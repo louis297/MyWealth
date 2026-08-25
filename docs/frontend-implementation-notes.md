@@ -73,7 +73,7 @@ Implemented. See §2.
 | --- | --- | --- |
 | POST | `/auth/login` | Returns token. Customer role → 403 |
 | POST | `/auth/logout` | 204 |
-| GET | `/users/me` | CurrentUserVm (id, email, displayName, role, tenantId, …) |
+| GET | `/users/me` | CurrentUserVm (id, email, displayName, role, tenantId, domainUserId, …) |
 | PUT | `/users/me` | Non-password profile fields only (e.g. displayName) |
 | PUT | `/users/me/password` | Requires current password + new password |
 
@@ -141,7 +141,9 @@ Both return multi-currency arrays. Empty data → empty array.
 
 ## 4. Customers
 
-**Pages:** list + detail
+Implemented in `src/AdviserPortal/src/features/customers/`.
+
+**Pages:** list + create + detail
 
 **Key endpoints:**
 
@@ -155,14 +157,14 @@ Both return multi-currency arrays. Empty data → empty array.
 
 **Implementation notes:**
 
-- List: search (name / email) + enabled filter + pagination
-- Create: Adviser callers may only assign themselves; TenantAdmin may assign any enabled Adviser in the tenant
-- Detail: basic info + assigned Adviser; optionally show related accounts via `GET /accounts?customerId=`
+- List: search (name / email / id) + enabled filter + pagination
+- Create: Adviser callers may only assign themselves (`domainUserId` from `/users/me`); TenantAdmin may assign any enabled Adviser in the tenant
+- Detail: basic info + assigned Adviser; related accounts via `GET /accounts?customerId=` (read-only table, no account-detail links)
 - Soft-disable requires confirmation; surface the backend 400 message when Active accounts still exist
+- Re-enable is a separate control on the detail page (`PUT isEnabled=true`)
+- Routes: `/customers`, `/customers/new`, `/customers/:customerId`
 
 **Empty state:** “No customers yet” with a clear create action.
-
-**Suggested order:** read-only list + detail first, then create / edit / disable.
 
 ## 5. Accounts (including Holdings surface)
 
@@ -255,7 +257,7 @@ Follow the order already locked in [adviser-portal.md](adviser-portal.md) §8 an
 2. Auth end-to-end (Login, token, `/users/me`, 401, ProtectedRoute)
 3. MainLayout + role-based menu (done)
 4. Dashboard (done)
-5. Customers list & detail
+5. Customers list & detail (done)
 6. Accounts list & detail (including Holdings)
 7. Transactions list & create
 8. Profile + Advisers
@@ -280,6 +282,7 @@ Rules for agents:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Customers implemented: list/search/filter/pagination, create, detail + accounts overview, edit, confirm-and-disable. |
 | 2026-08-26 | Dashboard home implemented: Net Worth + Allocation cards, SystemAdmin short-circuit, `formatMoney`. |
 | 2026-08-26 | MainLayout shell implemented: AuthLayout, role URL guard (redirect home), 404, mobile drawer, PageHeader. |
 | 2026-08-26 | Initial draft derived from the Chinese pure-text discussion. Aligns with adviser-portal page inventory and frontend-conventions. |
