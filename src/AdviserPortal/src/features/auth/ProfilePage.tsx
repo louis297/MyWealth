@@ -1,8 +1,10 @@
+import { PageHeader } from '../../shared/components/PageHeader'
+
 export function ProfilePage() {
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Profile</h1>
-      <p className="mt-2 text-slate-600">Placeholder</p>
+      <PageHeader title="Profile" />
+      <p className="text-slate-600">Placeholder</p>
     </div>
   )
 }

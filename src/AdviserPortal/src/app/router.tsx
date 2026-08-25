@@ -8,6 +8,8 @@ import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { TransactionsPage } from '../features/transactions/TransactionsPage'
 import { AuthLayout } from '../layouts/AuthLayout'
 import { MainLayout } from '../layouts/MainLayout'
+import { RequireNavAccess } from '../layouts/RequireNavAccess'
+import { NotFoundPage } from '../shared/components/NotFoundPage'
 
 export const router = createBrowserRouter([
   {
@@ -19,12 +21,18 @@ export const router = createBrowserRouter([
     path: '/',
     element: <MainLayout />,
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'customers', element: <CustomersPage /> },
-      { path: 'accounts', element: <AccountsPage /> },
-      { path: 'transactions', element: <TransactionsPage /> },
-      { path: 'advisers', element: <AdvisersPage /> },
-      { path: 'profile', element: <ProfilePage /> },
+      {
+        element: <RequireNavAccess />,
+        children: [
+          { index: true, element: <DashboardPage /> },
+          { path: 'customers', element: <CustomersPage /> },
+          { path: 'accounts', element: <AccountsPage /> },
+          { path: 'transactions', element: <TransactionsPage /> },
+          { path: 'advisers', element: <AdvisersPage /> },
+          { path: 'profile', element: <ProfilePage /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ])
