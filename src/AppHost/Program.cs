@@ -27,6 +27,7 @@ var adviserPortal = builder.AddViteApp("adviser-portal", "../AdviserPortal")
     .WaitFor(web)
     .WithExternalHttpEndpoints()
     .WithEnvironment("BROWSER", "none")
+    .WithEnvironment("VITE_API_BASE_URL", web.GetEndpoint("http"))
     .WithEndpoint(port: 5173, name: "http");
 
 builder.Build().Run();
