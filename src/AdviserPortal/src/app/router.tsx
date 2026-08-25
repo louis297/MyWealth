@@ -6,12 +6,14 @@ import { ProfilePage } from '../features/auth/ProfilePage'
 import { CustomersPage } from '../features/customers/CustomersPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { TransactionsPage } from '../features/transactions/TransactionsPage'
+import { AuthLayout } from '../layouts/AuthLayout'
 import { MainLayout } from '../layouts/MainLayout'
 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: <AuthLayout />,
+    children: [{ index: true, element: <LoginPage /> }],
   },
   {
     path: '/',
