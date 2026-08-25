@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { PageHeader } from '../../shared/components/PageHeader'
 import { CustomerAccountsSection } from './components/CustomerAccountsSection'
+import { CustomerEditSection } from './components/CustomerEditSection'
 import { useGetCustomerByIdQuery } from './customersApi'
 
 function isNotFoundError(error: unknown): boolean {
@@ -114,6 +115,7 @@ export function CustomerDetailPage() {
         </div>
       </dl>
 
+      <CustomerEditSection customer={data} />
       <CustomerAccountsSection customerId={data.id} />
     </div>
   )
