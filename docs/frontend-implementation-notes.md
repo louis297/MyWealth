@@ -110,31 +110,34 @@ This shell must stay stable while building business pages.
 
 ## 3. Dashboard (default home)
 
+Implemented in `src/AdviserPortal/src/features/dashboard/`.
+
 **Route:** `/`
 
 **Key endpoints:**
 
 | Method | Route | Notes |
 | --- | --- | --- |
-| GET | `/dashboard/net-worth` | Optional `?customerId=` |
-| GET | `/dashboard/allocation` | Optional `?customerId=` |
+| GET | `/dashboard/net-worth` | Optional `?customerId=` (not used yet) |
+| GET | `/dashboard/allocation` | Optional `?customerId=` (not used yet) |
 
 Both return multi-currency arrays. Empty data → empty array.
 
 **Implementation notes:**
 
 - Two distinct sections: Net Worth and Asset Allocation
-- Render one card / block per currency
+- One card / block per currency
+- Allocation % is computed client-side per currency
 - Closed accounts are already excluded by the backend
 - No historical charts, no export, no advanced filters in MVP
 - Optional customer filter can be added later; start with the global view
+- SystemAdmin does not call the endpoints (403). The page explains that figures are for Tenant Admins and Advisers
 
 **Empty / error states:**
 
-- Empty array → friendly “No data yet” message
+- Empty array → friendly “No data yet” message (per section)
+- Load failure → “Unable to load dashboard.” + Retry
 - Network / 401 handled by shared client
-
-**Suggested approach:** static layout first, then wire the two endpoints, then polish numbers and empty states.
 
 ## 4. Customers
 
@@ -251,7 +254,7 @@ Follow the order already locked in [adviser-portal.md](adviser-portal.md) §8 an
 1. Scaffold + store + typed hooks + router + shared API client
 2. Auth end-to-end (Login, token, `/users/me`, 401, ProtectedRoute)
 3. MainLayout + role-based menu (done)
-4. Dashboard
+4. Dashboard (done)
 5. Customers list & detail
 6. Accounts list & detail (including Holdings)
 7. Transactions list & create
@@ -277,5 +280,6 @@ Rules for agents:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Dashboard home implemented: Net Worth + Allocation cards, SystemAdmin short-circuit, `formatMoney`. |
 | 2026-08-26 | MainLayout shell implemented: AuthLayout, role URL guard (redirect home), 404, mobile drawer, PageHeader. |
 | 2026-08-26 | Initial draft derived from the Chinese pure-text discussion. Aligns with adviser-portal page inventory and frontend-conventions. |

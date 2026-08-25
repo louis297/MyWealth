@@ -130,6 +130,7 @@ Protected route pattern:
 - **Raw Tailwind** is the MVP styling approach. No component library (shadcn or otherwise) until an explicit decision is recorded here.
 - Prefer composition of small shared components (`shared/components/`) over giant page-level class strings when the same pattern repeats.
 - `PageHeader` is the first shared primitive; use it for page titles.
+- Monetary amounts are displayed with `shared/utils/formatMoney.ts` (`Intl.NumberFormat` currency style). The UI does not re-calculate business totals.
 - Keep visual design simple and consistent for a demo:
   - Clear page titles
   - Standard spacing scale
@@ -169,6 +170,7 @@ Step 4 → commit: add Login page
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Recorded `formatMoney` as the shared currency display helper. |
 | 2026-08-26 | Recorded raw Tailwind for MVP; URL-level role guard (redirect home, no 403 page); `PageHeader` as first shared primitive. |
 | 2026-08-26 | Linked Frontend Implementation Notes. |
 | 2026-08-25 | Initial draft for agentic coding readiness. |

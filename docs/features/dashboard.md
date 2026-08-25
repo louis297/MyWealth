@@ -2,7 +2,7 @@
 title: "Dashboard"
 status: accepted
 owner: ""
-last_updated: 2026-08-24
+last_updated: 2026-08-26
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -52,6 +52,7 @@ TenantAdmin and Adviser can retrieve the current Net Worth (Assets − Liabiliti
 - Multi-currency: results are returned as an array, one entry per currency. No automatic conversion.
 - Empty visible data → empty array
 - Pure Application-layer queries + view models; no Domain events, no new tables, no migration
+- Adviser Portal Dashboard home (`/`) consuming both endpoints (global view)
 
 **Out**
 
@@ -60,7 +61,7 @@ TenantAdmin and Adviser can retrieve the current Net Worth (Assets − Liabiliti
 - Market prices, live valuation, automatic FX conversion
 - Any write operations, materialised views or cache tables
 - SystemAdmin access to business data (Option A remains locked)
-- UI pages (API only for this slice)
+- `customerId` filter on the portal page (API supports it; UI starts with the global view)
 - Pagination, sorting or free-text search on either endpoint
 - Custom asset-class taxonomy (allocation is by `AccountType` only)
 
@@ -167,9 +168,14 @@ Update [api-design.md](../api-design.md) in the same change (add optional `custo
 
 ## 9. UI
 
-None — API only for this slice.
+Adviser Portal Dashboard home (`/`) is implemented.
 
-(Adviser Portal Dashboard home page can consume these two endpoints later.)
+- TenantAdmin and Adviser load `GET /dashboard/net-worth` and `GET /dashboard/allocation` in parallel (no `customerId`).
+- Two sections: **Net Worth** and **Asset Allocation**. One card / block per currency. Amounts are displayed as-is (no FX conversion, no client-side totals).
+- Allocation percentage is computed per currency (`value / sum(values in that currency)`). Zero total → em dash. Credit is shown as an `AccountType` row.
+- Empty `items` → section-level “No data yet”. Load failure → “Unable to load dashboard.” + Retry. 401 is handled by the shared API client.
+- SystemAdmin still lands on `/` (nav table) but the page does **not** call the endpoints (they 403). Copy: figures are available to Tenant Admins and Advisers; system administration stays in the API for this demo.
+- No historical charts, export, or customer filter in this slice.
 
 ## 10. Tests
 
@@ -203,5 +209,6 @@ None — API only for this slice.
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal Dashboard home: Net Worth + Allocation cards, client-side allocation %, SystemAdmin message (no API call), global view only. |
 | 2026-08-24 | Implemented. `GET /dashboard/net-worth` and `GET /dashboard/allocation` for TenantAdmin + Adviser. Optional `customerId` (404 if invisible). Multi-currency arrays, empty → empty array, Closed excluded, Credit = liability, signed-sum locked. Pure read model, API only. |
 | 2026-08-24 | Created from discussion. Locked: signed-sum signs (TransferIn/Dividend/Interest/Sell = +, TransferOut/Buy = −), allocation also accepts customerId, multi-currency as array, empty → empty array, no Account Performance, pure read model, API only. |
