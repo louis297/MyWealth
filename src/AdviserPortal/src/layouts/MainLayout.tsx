@@ -26,19 +26,21 @@ export function MainLayout() {
   const currentUser = useCurrentUser()
   const [logoutRequest] = useLogoutMutation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarForPath, setSidebarForPath] = useState(location.pathname)
   const { data, isError, isFetching } = useGetCurrentUserQuery(undefined, {
     skip: !token,
   })
+
+  if (sidebarForPath !== location.pathname) {
+    setSidebarForPath(location.pathname)
+    setSidebarOpen(false)
+  }
 
   useEffect(() => {
     if (data) {
       dispatch(setCurrentUser(data))
     }
   }, [data, dispatch])
-
-  useEffect(() => {
-    setSidebarOpen(false)
-  }, [location.pathname])
 
   useEffect(() => {
     if (!sidebarOpen) {
