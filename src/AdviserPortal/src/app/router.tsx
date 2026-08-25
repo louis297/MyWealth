@@ -3,6 +3,7 @@ import { AccountsPage } from '../features/accounts/AccountsPage'
 import { AdvisersPage } from '../features/advisers/AdvisersPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { ProfilePage } from '../features/auth/ProfilePage'
+import { CustomerDetailPage } from '../features/customers/CustomerDetailPage'
 import { CustomerListPage } from '../features/customers/CustomerListPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { TransactionsPage } from '../features/transactions/TransactionsPage'
@@ -26,6 +27,11 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'customers', element: <CustomerListPage /> },
+          {
+            path: 'customers/:customerId',
+            element: <CustomerDetailPage />,
+            handle: { title: 'Customer' },
+          },
           { path: 'accounts', element: <AccountsPage /> },
           { path: 'transactions', element: <TransactionsPage /> },
           { path: 'advisers', element: <AdvisersPage /> },
