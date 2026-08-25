@@ -13,4 +13,6 @@ public sealed class CurrentUserVm
     public int? TenantId { get; init; }
 
     public bool IsEnabled { get; init; }
+
+    public int? DomainUserId { get; init; }
 }

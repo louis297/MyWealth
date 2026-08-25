@@ -6,6 +6,7 @@ using System.Text.Json;
 using MyWealth.Application.IdentityAuth.GetCurrentUser;
 using MyWealth.Application.IdentityAuth.Login;
 using MyWealth.Domain.Constants;
+using MyWealth.Domain.Entities;
 using MyWealth.Domain.Enums;
 
 namespace MyWealth.Application.FunctionalTests.IdentityAuth;
@@ -166,6 +167,7 @@ public class AuthHttpTests : TestBase
         me.DisplayName.ShouldBe("Old Name");
         me.Role.ShouldBe(Roles.Adviser);
         me.TenantId.ShouldBe(4);
+        me.DomainUserId.ShouldBeNull();
 
         var updateResponse = await client.PutAsJsonAsync("/users/me", new { displayName = "New Name", email = "hacked@local", role = Roles.SystemAdmin, tenantId = 99, isEnabled = false });
         updateResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -190,6 +192,36 @@ public class AuthHttpTests : TestBase
 
         var logoutResponse = await client.PostAsync("/auth/logout", null);
         logoutResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+    }
+
+    [Test]
+    public async Task GetCurrentUser_ReturnsDomainUserIdWhenLinked()
+    {
+        var tenant = Tenant.Create("Linked Firm");
+        await TestApp.AddAsync(tenant);
+
+        var identityUser = await TestApp.CreateUserAsync(
+            "linked-adviser@local",
+            "Adviser1!",
+            UserRole.Adviser,
+            tenantId: tenant.Id,
+            displayName: "Linked Adviser");
+
+        var domainUser = User.CreateAdviser(tenant.Id, "Linked Adviser", "linked-adviser@local");
+        domainUser.LinkIdentity(identityUser.Id);
+        await TestApp.AddAsync(domainUser);
+
+        var (_, login) = await PostLogin("linked-adviser@local", "Adviser1!");
+        login.ShouldNotBeNull();
+
+        using var client = TestApp.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login.AccessToken);
+
+        var meResponse = await client.GetAsync("/users/me");
+        meResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var me = await meResponse.Content.ReadFromJsonAsync<CurrentUserVm>(JsonOptions);
+        me.ShouldNotBeNull();
+        me.DomainUserId.ShouldBe(domainUser.Id);
     }
 
     [Test]

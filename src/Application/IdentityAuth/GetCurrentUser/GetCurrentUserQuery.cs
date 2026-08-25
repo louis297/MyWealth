@@ -10,11 +10,13 @@ public class GetCurrentUserQueryHandler : IRequestHandler<GetCurrentUserQuery, C
 {
     private readonly IUser _user;
     private readonly IIdentityService _identityService;
+    private readonly IApplicationDbContext _context;
 
-    public GetCurrentUserQueryHandler(IUser user, IIdentityService identityService)
+    public GetCurrentUserQueryHandler(IUser user, IIdentityService identityService, IApplicationDbContext context)
     {
         _user = user;
         _identityService = identityService;
+        _context = context;
     }
 
     public async Task<CurrentUserVm> Handle(GetCurrentUserQuery request, CancellationToken cancellationToken)
@@ -31,6 +33,12 @@ public class GetCurrentUserQueryHandler : IRequestHandler<GetCurrentUserQuery, C
             throw new UnauthorizedAccessException();
         }
 
+        var domainUserId = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.IdentityUserId == _user.Id)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
         return new CurrentUserVm
         {
             UserId = currentUser.UserId,
@@ -38,7 +46,8 @@ public class GetCurrentUserQueryHandler : IRequestHandler<GetCurrentUserQuery, C
             DisplayName = currentUser.DisplayName,
             Role = currentUser.Role,
             TenantId = currentUser.TenantId,
-            IsEnabled = currentUser.IsEnabled
+            IsEnabled = currentUser.IsEnabled,
+            DomainUserId = domainUserId
         };
     }
 }
