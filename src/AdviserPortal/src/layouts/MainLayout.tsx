@@ -10,6 +10,7 @@ import {
 } from '../features/auth/authSlice'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { baseApi } from '../shared/api/baseApi'
+import { DocumentTitle } from './DocumentTitle'
 import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { NAV_ITEMS } from './navItems'
@@ -94,6 +95,7 @@ export function MainLayout() {
   if (status === 'loading' || (isFetching && currentUser === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-100 text-sm text-slate-600">
+        <DocumentTitle />
         Loading session…
       </div>
     )
@@ -102,6 +104,7 @@ export function MainLayout() {
   if (isError && currentUser === null) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-100 p-6 text-sm text-slate-700">
+        <DocumentTitle />
         <p>Unable to load your session.</p>
         <button
           type="button"
@@ -122,6 +125,7 @@ export function MainLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-900">
+      <DocumentTitle />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:shadow"

@@ -15,7 +15,7 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <AuthLayout />,
-    children: [{ index: true, element: <LoginPage /> }],
+    children: [{ index: true, element: <LoginPage />, handle: { title: 'Sign in' } }],
   },
   {
     path: '/',
@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
           { path: 'transactions', element: <TransactionsPage /> },
           { path: 'advisers', element: <AdvisersPage /> },
           { path: 'profile', element: <ProfilePage /> },
-          { path: '*', element: <NotFoundPage /> },
+          { path: '*', element: <NotFoundPage />, handle: { title: 'Page not found' } },
         ],
       },
     ],
