@@ -2,7 +2,7 @@
 title: "Identity & Auth"
 status: accepted
 owner: ""
-last_updated: 2026-08-21
+last_updated: 2026-08-26
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -129,7 +129,15 @@ See also [api-design.md](../api-design.md).
 
 ## 9. UI
 
-None — API only for this slice. Adviser Portal login / profile / change-password screens are deferred until the frontend project exists.
+Adviser Portal (MVP) now implements login and session handling. Profile update and change-password screens remain deferred.
+
+- **Login** (`/login`, public): email + password. Success stores the JWT, calls `GET /users/me`, then navigates to Dashboard (`/`).
+- **403** on Customer login is shown as the same message as invalid credentials (“Invalid credentials or no access”).
+- **Protected shell**: any other route requires a token. Missing token → `/login`. Authenticated visit to `/login` → `/`.
+- **Session restore**: JWT in `localStorage`; `/users/me` is loaded on bootstrap. Role, display name and tenantId come from that payload, not from parsing the JWT.
+- **401** on API calls (except login): clear token and current-user state, redirect to `/login`.
+- **Logout**: `POST /auth/logout` (best-effort), then discard the client token and return to `/login`.
+- **MainLayout** top bar shows display name and role; menu visibility is driven by the current-user role (SystemAdmin: Dashboard + Profile; TenantAdmin: all items; Adviser: all except Advisers).
 
 ## 10. Tests
 
@@ -159,6 +167,7 @@ None — API only for this slice. Adviser Portal login / profile / change-passwo
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal login + session UI implemented. Profile / change-password screens still deferred. |
 | 2026-08-21 | Implemented Option B: `UserRole` enum on `ApplicationUser`; Identity Roles removed. |
 | 2026-08-21 | **Option B locked in**: Role is a property/column on ApplicationUser, not an ASP.NET Identity Role. |
 | 2026-08-21 | Created from discussion. Custom `/auth` routes, `/users/me` introduced, Customer login → 403, profile vs password split. UI deferred. |
