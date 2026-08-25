@@ -8,3 +8,19 @@ export type CurrentUser = {
   tenantId: number | null
   isEnabled: boolean
 }
+
+export type LoginRequest = {
+  email: string
+  password: string
+}
+
+export type LoginResult = {
+  accessToken: string
+  tokenType: string
+  expiresIn: number
+  userId: string
+  email: string
+  displayName: string
+  role: UserRole
+  tenantId: number | null
+}
