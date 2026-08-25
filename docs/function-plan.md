@@ -2,7 +2,7 @@
 
 **Version**: v0.1  
 **Status**: Draft  
-**Last Updated**: 2026-08-24  
+**Last Updated**: 2026-08-26  
 
 ---
 
@@ -133,7 +133,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 | Asset Allocation View      | Show allocation by Account type or asset class   | Dashboard home                   | Tenant Admin, Adviser               |
 | Account Performance Overview | Simple view of recent changes and returns      | Dashboard home                   | Tenant Admin, Adviser               |
 
-> API shipped with the Dashboard slice (`GET /dashboard/net-worth`, `GET /dashboard/allocation`). Account Performance Overview and Adviser Portal pages remain out of scope for this slice. Historical Net Worth snapshots are out of scope for MVP.
+> API shipped with the Dashboard slice (`GET /dashboard/net-worth`, `GET /dashboard/allocation`). Adviser Portal home (`/`) consumes the global view of both endpoints. Account Performance Overview remains out of scope. Historical Net Worth snapshots are out of scope for MVP.
 
 ---
 

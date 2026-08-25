@@ -147,7 +147,7 @@ Principles:
 1. Project scaffold + Redux store + typed hooks + React Router (done)
 2. Auth end-to-end (Login page, token handling, interceptor, ProtectedRoute, `/users/me`) (done)
 3. MainLayout (sidebar + top bar + role-based menu) (done)
-4. Dashboard (Net Worth + Allocation)
+4. Dashboard (Net Worth + Allocation) (done)
 5. Customers list & detail
 6. Accounts list & detail (including Holdings surface)
 7. Transactions list & create
@@ -168,6 +168,7 @@ Principles:
 
 | Date       | Change |
 | ---------- | ------ |
+| 2026-08-26 | Dashboard home implemented: Net Worth + Allocation (global view), SystemAdmin message. |
 | 2026-08-26 | MainLayout implemented: role-based menu, AuthLayout, URL guard, 404, mobile drawer. |
 | 2026-08-26 | Linked Frontend Implementation Notes. |
 | 2026-08-25 | Initial draft. Locked: Dashboard as default home; Accounts as independent menu; SystemAdmin Tenant/TenantAdmin pages out of MVP UI. |
