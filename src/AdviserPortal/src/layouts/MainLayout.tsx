@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../app/hooks'
 import { useGetCurrentUserQuery, useLogoutMutation } from '../features/auth/authApi'
 import {
@@ -14,13 +14,17 @@ import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 import { NAV_ITEMS } from './navItems'
 
+const SIDEBAR_ID = 'app-sidebar'
+
 export function MainLayout() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const token = useAppSelector(selectToken)
   const status = useAppSelector(selectAuthStatus)
   const currentUser = useCurrentUser()
   const [logoutRequest] = useLogoutMutation()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const { data, isError, isFetching } = useGetCurrentUserQuery(undefined, {
     skip: !token,
   })
@@ -30,6 +34,46 @@ export function MainLayout() {
       dispatch(setCurrentUser(data))
     }
   }, [data, dispatch])
+
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!sidebarOpen) {
+      return
+    }
+
+    function isDesktop() {
+      return window.matchMedia('(min-width: 768px)').matches
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setSidebarOpen(false)
+      }
+    }
+
+    function onResize() {
+      if (isDesktop()) {
+        setSidebarOpen(false)
+      }
+    }
+
+    const previousOverflow = document.body.style.overflow
+    if (!isDesktop()) {
+      document.body.style.overflow = 'hidden'
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [sidebarOpen])
 
   if (!token) {
     return <Navigate to="/login" replace />
@@ -84,10 +128,18 @@ export function MainLayout() {
       >
         Skip to content
       </a>
-      <Sidebar items={visibleItems} />
+      <Sidebar
+        id={SIDEBAR_ID}
+        items={visibleItems}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           currentUser={currentUser}
+          sidebarId={SIDEBAR_ID}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((open) => !open)}
           onLogout={() => {
             void handleLogout()
           }}
