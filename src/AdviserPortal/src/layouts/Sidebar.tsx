@@ -23,8 +23,8 @@ export function Sidebar({ items, open, onClose, id }: SidebarProps) {
         id={id}
         className={[
           'flex w-56 flex-col bg-slate-800 text-slate-100',
-          'fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 md:static md:translate-x-0',
-          open ? 'translate-x-0' : '-translate-x-full',
+          'fixed inset-y-0 left-0 z-40 transition-transform duration-200 md:static',
+          open ? 'translate-x-0' : 'max-md:-translate-x-full',
         ].join(' ')}
       >
         <div className="border-b border-slate-700 px-4 py-4">
