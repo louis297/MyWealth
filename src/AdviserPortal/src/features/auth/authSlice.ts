@@ -1,8 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit'
-import { clearAuthStorage, getCurrentUser, getToken, setCurrentUser, setToken } from './authStorage'
+import { clearToken, getToken, setToken as persistToken } from './authStorage'
 import type { CurrentUser } from './types'
 
-export type AuthStatus = 'unauthenticated' | 'authenticated'
+export type AuthStatus = 'unauthenticated' | 'loading' | 'authenticated'
 
 export type AuthState = {
   token: string | null
@@ -10,14 +10,8 @@ export type AuthState = {
   status: AuthStatus
 }
 
-type SetCredentialsPayload = {
-  token: string
-  currentUser: CurrentUser
-}
-
 function loadInitialState(): AuthState {
   const token = getToken()
-  const currentUser = getCurrentUser()
 
   if (!token) {
     return {
@@ -29,8 +23,8 @@ function loadInitialState(): AuthState {
 
   return {
     token,
-    currentUser,
-    status: 'authenticated',
+    currentUser: null,
+    status: 'loading',
   }
 }
 
@@ -38,23 +32,25 @@ const authSlice = createSlice({
   name: 'auth',
   initialState: loadInitialState(),
   reducers: {
-    setCredentials(state, action: PayloadAction<SetCredentialsPayload>) {
-      state.token = action.payload.token
-      state.currentUser = action.payload.currentUser
+    setToken(state, action: PayloadAction<string>) {
+      state.token = action.payload
+      state.status = 'loading'
+      persistToken(action.payload)
+    },
+    setCurrentUser(state, action: PayloadAction<CurrentUser>) {
+      state.currentUser = action.payload
       state.status = 'authenticated'
-      setToken(action.payload.token)
-      setCurrentUser(action.payload.currentUser)
     },
     logout(state) {
       state.token = null
       state.currentUser = null
       state.status = 'unauthenticated'
-      clearAuthStorage()
+      clearToken()
     },
   },
 })
 
-export const { setCredentials, logout } = authSlice.actions
+export const { setToken: setAuthToken, setCurrentUser, logout } = authSlice.actions
 export const authReducer = authSlice.reducer
 
 type AuthRoot = { auth: AuthState }
@@ -62,4 +58,4 @@ type AuthRoot = { auth: AuthState }
 export const selectToken = (state: AuthRoot) => state.auth.token
 export const selectCurrentUser = (state: AuthRoot) => state.auth.currentUser
 export const selectAuthStatus = (state: AuthRoot) => state.auth.status
-export const selectIsAuthenticated = (state: AuthRoot) => Boolean(state.auth.token)
+export const selectIsAuthenticated = (state: AuthRoot) => state.auth.status === 'authenticated'
