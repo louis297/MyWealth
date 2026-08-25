@@ -2,8 +2,8 @@ import { useState, type FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { useAppDispatch, useAppSelector } from '../../app/hooks'
-import { useLazyGetCurrentUserQuery, useLoginMutation } from './authApi'
-import { logout, selectIsAuthenticated, setAuthToken, setCurrentUser } from './authSlice'
+import { useLoginMutation } from './authApi'
+import { logout, selectToken, setAuthToken } from './authSlice'
 
 const CREDENTIALS_ERROR = 'Invalid credentials or no access.'
 const GENERIC_ERROR = 'Unable to sign in. Try again.'
@@ -23,18 +23,15 @@ function loginErrorMessage(error: unknown): string {
 export function LoginPage() {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const isAuthenticated = useAppSelector(selectIsAuthenticated)
+  const token = useAppSelector(selectToken)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [login, { isLoading: isLoggingIn }] = useLoginMutation()
-  const [getCurrentUser, { isLoading: isLoadingUser }] = useLazyGetCurrentUserQuery()
+  const [login, { isLoading: isSubmitting }] = useLoginMutation()
 
-  if (isAuthenticated) {
+  if (token) {
     return <Navigate to="/" replace />
   }
-
-  const isSubmitting = isLoggingIn || isLoadingUser
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -47,9 +44,6 @@ export function LoginPage() {
       }).unwrap()
 
       dispatch(setAuthToken(result.accessToken))
-
-      const currentUser = await getCurrentUser().unwrap()
-      dispatch(setCurrentUser(currentUser))
       navigate('/', { replace: true })
     } catch (caught) {
       dispatch(logout())
