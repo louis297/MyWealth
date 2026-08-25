@@ -118,24 +118,24 @@ Aligned with [adviser-portal.md](adviser-portal.md):
 - JWT is stored in `localStorage` for this demo.
 - After login, call `GET /users/me` and store the result in Redux; role-based menu visibility is driven by that payload.
 
-Protected route pattern (conceptual):
+Protected route pattern:
 
-- A layout route checks for a valid token / current user.
+- A layout route (`MainLayout`) checks for a valid token / current user.
 - Child routes render inside `<Outlet />`.
-- Role checks for menu items happen in the layout; page-level 403 handling can be added later if needed.
+- Menu visibility and URL access both come from `NAV_ITEMS` + `currentUser.role`. A matching nav item the user cannot see redirects to `/`.
+- There is still no dedicated 403 page. Add one later if a feature needs an explicit “no access” screen.
 
 ## 7. UI & Tailwind conventions
 
-- Tailwind utility classes are the default styling approach.
+- **Raw Tailwind** is the MVP styling approach. No component library (shadcn or otherwise) until an explicit decision is recorded here.
 - Prefer composition of small shared components (`shared/components/`) over giant page-level class strings when the same pattern repeats.
+- `PageHeader` is the first shared primitive; use it for page titles.
 - Keep visual design simple and consistent for a demo:
   - Clear page titles
   - Standard spacing scale
   - Primary actions obvious
 - Do not introduce a second CSS approach (CSS Modules, styled-components, etc.) unless an explicit decision is recorded.
-- Accessibility basics: form labels, button types, and sensible focus order.
-
-(Component library choice — raw Tailwind vs. a thin set of primitives vs. later shadcn — can be decided when the first few pages are built. Record the choice here when it happens.)
+- Accessibility basics: form labels, button types, skip-to-content, and sensible focus order.
 
 ## 8. Agentic coding discipline
 
@@ -169,5 +169,6 @@ Step 4 → commit: add Login page
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Recorded raw Tailwind for MVP; URL-level role guard (redirect home, no 403 page); `PageHeader` as first shared primitive. |
 | 2026-08-26 | Linked Frontend Implementation Notes. |
 | 2026-08-25 | Initial draft for agentic coding readiness. |
