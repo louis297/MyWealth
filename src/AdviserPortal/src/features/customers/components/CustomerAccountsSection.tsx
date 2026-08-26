@@ -1,4 +1,5 @@
-import { useGetAccountsQuery } from '../customersApi'
+import { Link } from 'react-router-dom'
+import { useGetAccountsQuery } from '../../accounts/accountsApi'
 
 type CustomerAccountsSectionProps = {
   customerId: number
@@ -10,7 +11,15 @@ export function CustomerAccountsSection({ customerId }: CustomerAccountsSectionP
 
   return (
     <section className="mt-8">
-      <h2 className="mb-3 text-lg font-semibold">Accounts</h2>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">Accounts</h2>
+        <Link
+          to={`/accounts/new?customerId=${customerId}`}
+          className="text-sm text-slate-800 underline hover:no-underline"
+        >
+          New account
+        </Link>
+      </div>
 
       {accounts.isLoading ? (
         <p className="text-slate-600" aria-busy="true">
@@ -65,7 +74,14 @@ export function CustomerAccountsSection({ customerId }: CustomerAccountsSectionP
             <tbody>
               {items.map((account) => (
                 <tr key={account.id} className="border-b border-slate-100 last:border-0">
-                  <td className="px-4 py-3 text-slate-800">{account.name}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      to={`/accounts/${account.id}`}
+                      className="font-medium text-slate-800 underline hover:no-underline"
+                    >
+                      {account.name}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-slate-700">{account.type}</td>
                   <td className="px-4 py-3 text-slate-700">{account.status}</td>
                   <td className="px-4 py-3 text-slate-700">{account.currency}</td>

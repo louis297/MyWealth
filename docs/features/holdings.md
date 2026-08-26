@@ -2,7 +2,7 @@
 title: "Holdings"
 status: accepted
 owner: ""
-last_updated: 2026-08-24
+last_updated: 2026-08-26
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -227,7 +227,12 @@ Update [api-design.md](../api-design.md) in the same change.
 
 ## 9. UI
 
-None — API only for this slice. Account detail pages in the Adviser Portal can surface the Holdings list / create / edit later once the API is stable.
+Holdings are surfaced on the Adviser Portal account detail page (`/accounts/:accountId`). There is no top-level Holdings menu.
+
+- **List**: instrument name, symbol, quantity, cost basis (`formatMoney`). No pagination (API returns the full set).
+- **Create / edit** on Active accounts: name, optional symbol, quantity (≥ 0), cost-basis amount. Currency is taken from the parent account and is not an input.
+- **Delete**: confirmation dialog. Backend 400 text is shown when the holding still has historical transactions, or when the account is closed.
+- **Closed accounts**: holdings remain visible; create / edit / delete controls are hidden.
 
 ## 10. Tests
 
@@ -261,6 +266,7 @@ None — API only for this slice. Account detail pages in the Adviser Portal can
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal: holdings list/create/edit/delete embedded on account detail. Closed accounts are read-only; cost-basis currency is taken from the account. |
 | 2026-08-24 | Transactions slice delivered the historical-Tx delete guard: `DELETE /accounts/{accountId}/holdings/{id}` returns 400 when any Transaction references the Holding. |
 | 2026-08-24 | Implemented. Nested `/accounts/{accountId}/holdings` for TenantAdmin + Adviser. Quantity ≥ 0 (incl. zero). CostBasis.Currency immutable and must match Account. Physical DELETE allowed; Transactions slice will add the historical-Tx guard. Account → Holdings FK is CASCADE (close is not a SQL delete). Sample Apple holding seeded. |
 | 2026-08-24 | Created from discussion. Locked: nested routes only, no list search/pagination, Currency immutable, Quantity ≥ 0 (incl. zero), physical DELETE allowed now with future Transactions guard documented, visibility identical to Accounts. |

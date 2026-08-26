@@ -2,7 +2,7 @@
 title: "Accounts"
 status: accepted
 owner: ""
-last_updated: 2026-08-24
+last_updated: 2026-08-26
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -230,7 +230,14 @@ Update [api-design.md](../api-design.md) in the same change.
 
 ## 9. UI
 
-None — API only for this slice. Account list / create / edit / close pages in the Adviser Portal can be added later once the API is stable.
+Adviser Portal (`src/AdviserPortal`) now implements Accounts for TenantAdmin and Adviser.
+
+- **List** (`/accounts`): search (id / name), status filter, optional customer filter, pagination. Empty state: “No accounts yet” plus a create action.
+- **Create** (`/accounts/new`): customer + name + type + currency. Currency defaults to `NZD` and is sent uppercase. `?customerId=` prefills the customer from the customer detail overview.
+- **Detail** (`/accounts/:accountId`): name, customer (link), type, status, currency, id. Out-of-scope ids show “not found” (404 is not distinguished from missing). Closed accounts show a banner that new holdings and transactions are not allowed.
+- **Edit** on the detail page: name and/or type. Currency, customer and status are not editable here.
+- **Close**: confirmation dialog then `POST /accounts/{id}/close`. Irreversible. Existing history is kept. Only shown while Active.
+- **Holdings** live on the detail page (see [holdings.md](holdings.md) §9). There is no top-level Holdings menu.
 
 ## 10. Tests
 
@@ -265,5 +272,6 @@ None — API only for this slice. Account list / create / edit / close pages in 
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal Accounts UI: list/search/filter/pagination, create, detail, edit name/type, confirm-and-close. Holdings CRUD is on the detail page. |
 | 2026-08-24 | Implemented. TenantAdmin + Adviser CRUD under `/accounts`. Close is `POST /accounts/{id}/close` (irreversible). Currency immutable. PUT Name and/or Type (forbidden fields rejected). Visibility 404 scoping. Customer disable now refused while Active accounts remain. Sample Brokerage account seeded. |
 | 2026-08-24 | Created from discussion. Locked: no forced clear on close, AccountType from domain-model, customerId list filter, POST /close, PUT may change Type, Status = Active/Closed. |

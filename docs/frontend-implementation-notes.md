@@ -159,7 +159,7 @@ Implemented in `src/AdviserPortal/src/features/customers/`.
 
 - List: search (name / email / id) + enabled filter + pagination
 - Create: Adviser callers may only assign themselves (`domainUserId` from `/users/me`); TenantAdmin may assign any enabled Adviser in the tenant
-- Detail: basic info + assigned Adviser; related accounts via `GET /accounts?customerId=` (read-only table, no account-detail links)
+- Detail: basic info + assigned Adviser; related accounts via `GET /accounts?customerId=` (names link to account detail; “New account” prefills customer)
 - Soft-disable requires confirmation; surface the backend 400 message when Active accounts still exist
 - Re-enable is a separate control on the detail page (`PUT isEnabled=true`)
 - Routes: `/customers`, `/customers/new`, `/customers/:customerId`
@@ -168,7 +168,10 @@ Implemented in `src/AdviserPortal/src/features/customers/`.
 
 ## 5. Accounts (including Holdings surface)
 
+Implemented in `src/AdviserPortal/src/features/accounts/`.
+
 **Pages:** account list (top-level menu) + account detail (Holdings live here)
+**Routes:** `/accounts`, `/accounts/new`, `/accounts/:accountId`
 
 **Key endpoints — Accounts:**
 
@@ -190,18 +193,14 @@ Implemented in `src/AdviserPortal/src/features/customers/`.
 **Implementation notes:**
 
 - Accounts is a first-class menu item (not only reachable via Customer drill-down)
-- Create form: Customer + Name + Type + Currency
-- Close is irreversible → strong confirmation dialog
-- Closed accounts reject new Holdings and Transactions (backend)
-- Account detail shows Holdings table (quantity, cost basis, instrument)
-- Holdings CostBasis.Currency must match the Account currency (backend enforces)
+- List: search (id / name) + status + optional customer filter + pagination
+- Create form: Customer + Name + Type + Currency (default `NZD`, immutable after create)
+- Close is irreversible → strong confirmation dialog; only shown while Active
+- Closed accounts reject new Holdings and Transactions (backend); UI hides holding writes
+- Account detail shows Holdings table (quantity, cost basis, instrument) plus create/edit/delete on Active accounts
+- Holdings CostBasis.Currency is taken from the Account (not an input)
 - Do **not** create a separate top-level Holdings menu
-
-**Suggested commits:**
-
-1. Accounts list + detail (read-only)
-2. Create / edit name+type / close
-3. Holdings CRUD embedded in the detail page
+- Empty list: “No accounts yet” with a create action
 
 ## 6. Transactions
 
@@ -258,7 +257,7 @@ Follow the order already locked in [adviser-portal.md](adviser-portal.md) §8 an
 3. MainLayout + role-based menu (done)
 4. Dashboard (done)
 5. Customers list & detail (done)
-6. Accounts list & detail (including Holdings)
+6. Accounts list & detail (including Holdings) (done)
 7. Transactions list & create
 8. Profile + Advisers
 9. Polish and remaining P2 items
@@ -282,6 +281,7 @@ Rules for agents:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Accounts implemented: list/search/filter/pagination, create, detail + holdings CRUD, edit name/type, confirm-and-close. |
 | 2026-08-26 | Customers implemented: list/search/filter/pagination, create, detail + accounts overview, edit, confirm-and-disable. |
 | 2026-08-26 | Dashboard home implemented: Net Worth + Allocation cards, SystemAdmin short-circuit, `formatMoney`. |
 | 2026-08-26 | MainLayout shell implemented: AuthLayout, role URL guard (redirect home), 404, mobile drawer, PageHeader. |
