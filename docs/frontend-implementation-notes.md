@@ -204,7 +204,9 @@ Implemented in `src/AdviserPortal/src/features/accounts/`.
 
 ## 6. Transactions
 
-**Pages:** list + create (page, drawer or modal)
+Implemented in `src/AdviserPortal/src/features/transactions/`.
+
+**Pages:** list + create page (`/transactions`, `/transactions/new`)
 
 **Key endpoints:**
 
@@ -217,18 +219,19 @@ Implemented in `src/AdviserPortal/src/features/accounts/`.
 **Implementation notes:**
 
 - List supports the filters above
+- Create is a dedicated page (not a modal): `/transactions/new`
 - Create flow:
-  - Select Account first
+  - Select Account first (Active accounts only)
   - Type determines whether Holding + Quantity are required (Buy / Sell yes; cash types no)
   - Amount is always positive; direction is expressed solely by Type
-  - `BookedOn` may be a future date
-  - Currency must match the Account
-- After successful create the client may re-fetch the related Holding or Account if updated positions are needed
+  - `BookedOn` may be a future date (defaults to today)
+  - Currency is taken from the selected Account (not an input)
+- After successful create, invalidate the transaction list and that account’s holdings, then return to `/transactions`
+- `?accountId=` prefills create from account detail
+- Account detail shows a paginated transactions overview; “New transaction” is hidden when Closed
 - No edit or delete UI (append-only)
 
 **Empty state:** simple “No transactions” message.
-
-**Suggested order:** list first, then create form (start with the most common types).
 
 ## 7. Profile + Advisers
 
@@ -258,7 +261,7 @@ Follow the order already locked in [adviser-portal.md](adviser-portal.md) §8 an
 4. Dashboard (done)
 5. Customers list & detail (done)
 6. Accounts list & detail (including Holdings) (done)
-7. Transactions list & create
+7. Transactions list & create (done)
 8. Profile + Advisers
 9. Polish and remaining P2 items
 
@@ -281,6 +284,7 @@ Rules for agents:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Transactions implemented: list/filter/pagination, create (cash + buy/sell), account-detail overview. |
 | 2026-08-26 | Accounts implemented: list/search/filter/pagination, create, detail + holdings CRUD, edit name/type, confirm-and-close. |
 | 2026-08-26 | Customers implemented: list/search/filter/pagination, create, detail + accounts overview, edit, confirm-and-disable. |
 | 2026-08-26 | Dashboard home implemented: Net Worth + Allocation cards, SystemAdmin short-circuit, `formatMoney`. |

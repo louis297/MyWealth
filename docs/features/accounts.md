@@ -238,6 +238,7 @@ Adviser Portal (`src/AdviserPortal`) now implements Accounts for TenantAdmin and
 - **Edit** on the detail page: name and/or type. Currency, customer and status are not editable here.
 - **Close**: confirmation dialog then `POST /accounts/{id}/close`. Irreversible. Existing history is kept. Only shown while Active.
 - **Holdings** live on the detail page (see [holdings.md](holdings.md) §9). There is no top-level Holdings menu.
+- **Transactions overview** on detail: paginated `GET /transactions?accountId=` table. “New transaction” prefills `?accountId=` and is hidden when Closed (see [transactions.md](transactions.md) §9).
 
 ## 10. Tests
 
@@ -272,6 +273,7 @@ Adviser Portal (`src/AdviserPortal`) now implements Accounts for TenantAdmin and
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Account detail now includes a paginated transactions overview. |
 | 2026-08-26 | Adviser Portal Accounts UI: list/search/filter/pagination, create, detail, edit name/type, confirm-and-close. Holdings CRUD is on the detail page. |
 | 2026-08-24 | Implemented. TenantAdmin + Adviser CRUD under `/accounts`. Close is `POST /accounts/{id}/close` (irreversible). Currency immutable. PUT Name and/or Type (forbidden fields rejected). Visibility 404 scoping. Customer disable now refused while Active accounts remain. Sample Brokerage account seeded. |
 | 2026-08-24 | Created from discussion. Locked: no forced clear on close, AccountType from domain-model, customerId list filter, POST /close, PUT may change Type, Status = Active/Closed. |
