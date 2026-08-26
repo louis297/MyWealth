@@ -2,7 +2,7 @@
 title: "Advisers"
 status: accepted
 owner: ""
-last_updated: 2026-08-23
+last_updated: 2026-08-26
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -196,7 +196,13 @@ Update [api-design.md](../api-design.md) in the same change if any detail needs 
 
 ## 9. UI
 
-None — API only for this slice. Adviser list / create / edit pages in the Adviser Portal can be added later once the API is stable.
+Adviser Portal (`src/AdviserPortal`) now implements Advisers for TenantAdmin. Adviser and SystemAdmin are redirected home by the existing role URL guard.
+
+- **List** (`/advisers`): search (id / name / email), enabled filter, pagination. Empty state: “No advisers yet” plus a create action.
+- **Create** (`/advisers/new`): name + email + caller-supplied password (confirm password is client-only). Duplicate email shows the backend 400 text.
+- **Detail** (`/advisers/:adviserId`): name, email, enabled state, id. Out-of-scope ids show “not found” (404 is not distinguished from missing).
+- **Edit** on the detail page: name only. Email is immutable in the UI, matching the API.
+- **Disable**: confirmation dialog then `DELETE`. Backend 400 text is shown when customers are still assigned. Re-enable is a separate action (`PUT isEnabled=true`).
 
 ## 10. Tests
 
@@ -231,5 +237,6 @@ None — API only for this slice. Adviser list / create / edit pages in the Advi
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal Advisers UI: list/search/filter/pagination, create, detail, edit name, confirm-and-disable, re-enable. TenantAdmin only. |
 | 2026-08-23 | Implemented. Domain `User` introduced (all four roles). Create Adviser also creates Identity user in a transaction. Email globally unique (CI collation). Soft-disable via DELETE with Customer-reassignment guard. Seed links Domain Users to Identity; Customer seed is Domain-only (no login). |
 | 2026-08-23 | Created from discussion. Locked: global unique Email (Demo), caller-supplied password, DELETE soft-disable with Customer-reassignment guard, full User foundation, FK decisions for TenantId/AdviserId/IdentityUserId. |

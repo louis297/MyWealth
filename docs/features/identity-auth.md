@@ -129,7 +129,7 @@ See also [api-design.md](../api-design.md).
 
 ## 9. UI
 
-Adviser Portal (MVP) now implements login and session handling. Profile update and change-password screens remain deferred.
+Adviser Portal (MVP) implements login, session handling, and the current-user Profile page.
 
 - **Login** (`/login`, public): email + password. Success stores the JWT, calls `GET /users/me`, then navigates to Dashboard (`/`).
 - **403** on Customer login is shown as the same message as invalid credentials (“Invalid credentials or no access”).
@@ -138,6 +138,7 @@ Adviser Portal (MVP) now implements login and session handling. Profile update a
 - **401** on API calls (except login): clear token and current-user state, redirect to `/login`.
 - **Logout**: `POST /auth/logout` (best-effort), then discard the client token and return to `/login`.
 - **MainLayout** top bar shows display name and role; menu visibility is driven by the current-user role (SystemAdmin: Dashboard + Profile; TenantAdmin: all items; Adviser: all except Advisers). The shell also includes `AuthLayout` for `/login`, a 404 inside the protected layout, and a URL-level role guard that redirects hidden-menu paths to Dashboard. There is no dedicated 403 page.
+- **Profile** (`/profile`, all authenticated roles): read-only email / role / tenant (`—` when null) / enabled; `PUT /users/me` for display name (top bar refreshes from a refetch of `/users/me`); separate change-password form calling `PUT /users/me/password` (current + new + confirm). Email, role, tenant and enabled are not editable. Session stays signed in after a password change.
 
 ## 10. Tests
 
@@ -167,6 +168,7 @@ Adviser Portal (MVP) now implements login and session handling. Profile update a
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal Profile page: display name update and change-password. |
 | 2026-08-26 | `GET /users/me` includes optional `domainUserId` so Adviser callers can self-assign customers. |
 | 2026-08-26 | Adviser Portal shell: AuthLayout, 404, role URL guard (redirect home). |
 | 2026-08-26 | Adviser Portal login + session UI implemented. Profile / change-password screens still deferred. |

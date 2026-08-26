@@ -235,19 +235,28 @@ Implemented in `src/AdviserPortal/src/features/transactions/`.
 
 ## 7. Profile + Advisers
 
+Implemented.
+
 ### Profile (all authenticated roles)
 
-- Display data from `/users/me`
-- Update display name → `PUT /users/me`
-- Change password → separate form calling `PUT /users/me/password` (current + new password)
+**Route:** `/profile`
+
+- Display data from `/users/me` (email, role, tenant, enabled)
+- Update display name → `PUT /users/me`; current-user cache is invalidated so the top bar updates
+- Change password → separate form calling `PUT /users/me/password` (current + new + confirm). Stay signed in on success
 
 ### Advisers (TenantAdmin only)
 
+**Pages:** list + create + detail  
+**Routes:** `/advisers`, `/advisers/new`, `/advisers/:adviserId`
+
 **Key endpoints:** `/advisers` (list, get, create, update, soft-disable)
 
-- Create also creates the Identity login; password is supplied by the caller
-- Soft-disable fails if any Customer is still assigned (backend 400)
-- Email is globally unique (demo simplification)
+- List: search (id / name / email) + enabled filter + pagination
+- Create also creates the Identity login; password is supplied by the caller (confirm is client-only)
+- Soft-disable fails if any Customer is still assigned (backend 400); re-enable is `PUT isEnabled=true`
+- Email is globally unique (demo simplification) and immutable in the UI
+- Customer create/edit adviser picker now uses the advisers API so it refreshes after adviser writes
 
 SystemAdmin Tenant / TenantAdmin management screens remain out of MVP UI (use Scalar / API).
 
@@ -262,7 +271,7 @@ Follow the order already locked in [adviser-portal.md](adviser-portal.md) §8 an
 5. Customers list & detail (done)
 6. Accounts list & detail (including Holdings) (done)
 7. Transactions list & create (done)
-8. Profile + Advisers
+8. Profile + Advisers (done)
 9. Polish and remaining P2 items
 
 Rules for agents:
@@ -284,6 +293,7 @@ Rules for agents:
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Profile + Advisers implemented: `/profile` display name and change-password; TenantAdmin adviser list/create/detail/disable. |
 | 2026-08-26 | Transactions implemented: list/filter/pagination, create (cash + buy/sell), account-detail overview. |
 | 2026-08-26 | Accounts implemented: list/search/filter/pagination, create, detail + holdings CRUD, edit name/type, confirm-and-close. |
 | 2026-08-26 | Customers implemented: list/search/filter/pagination, create, detail + accounts overview, edit, confirm-and-disable. |
