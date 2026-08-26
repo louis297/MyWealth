@@ -25,3 +25,12 @@ export type LoginResult = {
   role: UserRole
   tenantId: number | null
 }
+
+export type UpdateCurrentUserRequest = {
+  displayName: string
+}
+
+export type ChangePasswordRequest = {
+  currentPassword: string
+  newPassword: string
+}
