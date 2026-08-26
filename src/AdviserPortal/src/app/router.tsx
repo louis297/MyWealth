@@ -9,6 +9,7 @@ import { CustomerCreatePage } from '../features/customers/CustomerCreatePage'
 import { CustomerDetailPage } from '../features/customers/CustomerDetailPage'
 import { CustomerListPage } from '../features/customers/CustomerListPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
+import { TransactionCreatePage } from '../features/transactions/TransactionCreatePage'
 import { TransactionListPage } from '../features/transactions/TransactionListPage'
 import { AuthLayout } from '../layouts/AuthLayout'
 import { MainLayout } from '../layouts/MainLayout'
@@ -52,6 +53,11 @@ export const router = createBrowserRouter([
             handle: { title: 'Account' },
           },
           { path: 'transactions', element: <TransactionListPage /> },
+          {
+            path: 'transactions/new',
+            element: <TransactionCreatePage />,
+            handle: { title: 'New transaction' },
+          },
           { path: 'advisers', element: <AdvisersPage /> },
           { path: 'profile', element: <ProfilePage /> },
           { path: '*', element: <NotFoundPage />, handle: { title: 'Page not found' } },
