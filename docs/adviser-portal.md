@@ -149,7 +149,7 @@ Principles:
 3. MainLayout (sidebar + top bar + role-based menu) (done)
 4. Dashboard (Net Worth + Allocation) (done)
 5. Customers list & detail (done)
-6. Accounts list & detail (including Holdings surface)
+6. Accounts list & detail (including Holdings surface) (done)
 7. Transactions list & create
 8. Profile + Advisers management
 9. Polish and remaining P2 items
@@ -168,6 +168,7 @@ Principles:
 
 | Date       | Change |
 | ---------- | ------ |
+| 2026-08-26 | Accounts implemented: list + create + detail (holdings CRUD), edit name/type, confirm-and-close. |
 | 2026-08-26 | Customers implemented: list + create + detail (accounts overview), edit, confirm-and-disable. |
 | 2026-08-26 | Dashboard home implemented: Net Worth + Allocation (global view), SystemAdmin message. |
 | 2026-08-26 | MainLayout implemented: role-based menu, AuthLayout, URL guard, 404, mobile drawer. |
