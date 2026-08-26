@@ -2,7 +2,9 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AccountCreatePage } from '../features/accounts/AccountCreatePage'
 import { AccountDetailPage } from '../features/accounts/AccountDetailPage'
 import { AccountListPage } from '../features/accounts/AccountListPage'
-import { AdvisersPage } from '../features/advisers/AdvisersPage'
+import { AdviserCreatePage } from '../features/advisers/AdviserCreatePage'
+import { AdviserDetailPage } from '../features/advisers/AdviserDetailPage'
+import { AdviserListPage } from '../features/advisers/AdviserListPage'
 import { LoginPage } from '../features/auth/LoginPage'
 import { ProfilePage } from '../features/auth/ProfilePage'
 import { CustomerCreatePage } from '../features/customers/CustomerCreatePage'
@@ -58,7 +60,17 @@ export const router = createBrowserRouter([
             element: <TransactionCreatePage />,
             handle: { title: 'New transaction' },
           },
-          { path: 'advisers', element: <AdvisersPage /> },
+          { path: 'advisers', element: <AdviserListPage /> },
+          {
+            path: 'advisers/new',
+            element: <AdviserCreatePage />,
+            handle: { title: 'New adviser' },
+          },
+          {
+            path: 'advisers/:adviserId',
+            element: <AdviserDetailPage />,
+            handle: { title: 'Adviser' },
+          },
           { path: 'profile', element: <ProfilePage /> },
           { path: '*', element: <NotFoundPage />, handle: { title: 'Page not found' } },
         ],

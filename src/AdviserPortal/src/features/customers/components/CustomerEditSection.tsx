@@ -3,11 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 import { apiErrorMessage } from '../../../shared/utils/apiError'
 import { useCurrentUser } from '../../auth/useCurrentUser'
-import {
-  useDisableCustomerMutation,
-  useGetAdvisersQuery,
-  useUpdateCustomerMutation,
-} from '../customersApi'
+import { useGetAdvisersQuery } from '../../advisers/advisersApi'
+import { useDisableCustomerMutation, useUpdateCustomerMutation } from '../customersApi'
 import type { AdviserLookup, Customer, UpdateCustomerRequest } from '../types'
 import { CustomerForm, type CustomerFormValues } from './CustomerForm'
 

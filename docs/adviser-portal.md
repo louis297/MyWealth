@@ -151,7 +151,7 @@ Principles:
 5. Customers list & detail (done)
 6. Accounts list & detail (including Holdings surface) (done)
 7. Transactions list & create (done)
-8. Profile + Advisers management
+8. Profile + Advisers management (done)
 9. Polish and remaining P2 items
 
 ## 9. Related documents
@@ -168,6 +168,7 @@ Principles:
 
 | Date       | Change |
 | ---------- | ------ |
+| 2026-08-26 | Profile + Advisers implemented: display name and change-password; TenantAdmin adviser list/create/detail/disable. |
 | 2026-08-26 | Transactions implemented: list + create, account-detail overview. Append-only (no edit/delete). |
 | 2026-08-26 | Accounts implemented: list + create + detail (holdings CRUD), edit name/type, confirm-and-close. |
 | 2026-08-26 | Customers implemented: list + create + detail (accounts overview), edit, confirm-and-disable. |
