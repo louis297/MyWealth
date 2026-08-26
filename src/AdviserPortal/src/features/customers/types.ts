@@ -31,16 +31,4 @@ export type GetCustomersArgs = {
   search?: string
 }
 
-export type AdviserLookup = {
-  id: number
-  name: string
-  email: string
-  isEnabled: boolean
-}
-
-export type GetAdvisersArgs = {
-  page?: number
-  pageSize?: number
-  isEnabled?: boolean
-  search?: string
-}
+export type { Adviser as AdviserLookup } from '../advisers/types'

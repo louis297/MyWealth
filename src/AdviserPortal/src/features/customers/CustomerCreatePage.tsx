@@ -4,7 +4,8 @@ import { PageHeader } from '../../shared/components/PageHeader'
 import { apiErrorMessage } from '../../shared/utils/apiError'
 import { useCurrentUser } from '../auth/useCurrentUser'
 import { CustomerForm, type CustomerFormValues } from './components/CustomerForm'
-import { useCreateCustomerMutation, useGetAdvisersQuery } from './customersApi'
+import { useGetAdvisersQuery } from '../advisers/advisersApi'
+import { useCreateCustomerMutation } from './customersApi'
 
 export function CustomerCreatePage() {
   const navigate = useNavigate()
