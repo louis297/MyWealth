@@ -2,7 +2,7 @@
 title: "Transactions"
 status: accepted
 owner: ""
-last_updated: 2026-08-24
+last_updated: 2026-08-26
 related:
   - ../function-plan.md
   - ../domain-model.md
@@ -256,7 +256,11 @@ Update [api-design.md](../api-design.md) in the same change.
 
 ## 9. UI
 
-None — API only for this slice. Account detail or a dedicated transaction list page in the Adviser Portal can be added later once the API is stable.
+Adviser Portal (`src/AdviserPortal`) now implements Transactions for TenantAdmin and Adviser. Append-only: no edit or delete UI, and no dedicated detail page.
+
+- **List** (`/transactions`): filters for account, date range (`from` / `to`), and type, plus pagination. Account names resolve from `GET /accounts` and link to account detail. Empty state: “No transactions” plus a create action.
+- **Create** (`/transactions/new`): select Account first (Active accounts only). Type defaults to Buy. Buy / Sell require Holding + Quantity; cash types omit both. Amount is always positive; currency is taken from the selected account (not an input). `BookedOn` defaults to today; future dates are allowed. Note is optional (max 500). `?accountId=` prefills the account from the account detail overview.
+- **Account detail overview**: paginated `GET /transactions?accountId=` table on `/accounts/:accountId`. “New transaction” is shown only while the account is Active.
 
 ## 10. Tests
 
@@ -291,5 +295,6 @@ None — API only for this slice. Account detail or a dedicated transaction list
 
 | Date | Change |
 | --- | --- |
+| 2026-08-26 | Adviser Portal: list + create pages, account-detail overview. No edit/delete UI. |
 | 2026-08-24 | Implemented. Top-level `/transactions` create/list/get for TenantAdmin + Adviser. Append-only. Buy/Sell average-cost inside Account. Cash types leave Holdings untouched. Holding-delete guard landed. Amount always > 0. Future BookedOn allowed. Create returns id only. |
 | 2026-08-24 | Created from discussion. Locked: append-only, top-level routes, Amount always > 0, future BookedOn allowed, create returns id only, no holdingId list filter, average-cost adjustment inside Account aggregate, Holding-delete guard delivered in this slice. |

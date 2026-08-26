@@ -121,7 +121,7 @@ Technical implementation details (Commands, Queries, API contracts, etc.) are de
 | Create Transaction         | Support Buy, Sell, Transfer In, Transfer Out, Dividend, Interest, etc. | Create Transaction form | Tenant Admin, Adviser          |
 | Auto-update Holding        | Automatically adjust Holding quantity and cost basis after a transaction | System behavior            | Built-in                            |
 
-> API shipped with the Transactions slice (`GET`/`POST /transactions`). Adviser Portal pages can follow later.
+> API shipped with the Transactions slice (`GET`/`POST /transactions`). Adviser Portal list (`/transactions`) and create (`/transactions/new`) consume those endpoints; account detail shows a transactions overview.
 
 ---
 

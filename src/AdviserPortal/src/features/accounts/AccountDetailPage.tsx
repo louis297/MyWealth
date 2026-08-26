@@ -4,6 +4,7 @@ import { PageHeader } from '../../shared/components/PageHeader'
 import { useGetAccountByIdQuery } from './accountsApi'
 import { AccountEditSection } from './components/AccountEditSection'
 import { AccountStatusBadge } from './components/AccountStatusBadge'
+import { AccountTransactionsSection } from './components/AccountTransactionsSection'
 import { HoldingsSection } from './components/HoldingsSection'
 
 function isNotFoundError(error: unknown): boolean {
@@ -130,6 +131,7 @@ export function AccountDetailPage() {
 
       <AccountEditSection account={data} />
       <HoldingsSection account={data} />
+      <AccountTransactionsSection account={data} />
     </div>
   )
 }
