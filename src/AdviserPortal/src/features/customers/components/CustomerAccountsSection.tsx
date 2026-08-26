@@ -1,4 +1,4 @@
-import { useGetAccountsQuery } from '../customersApi'
+import { useGetAccountsQuery } from '../../accounts/accountsApi'
 
 type CustomerAccountsSectionProps = {
   customerId: number

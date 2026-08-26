@@ -44,25 +44,3 @@ export type GetAdvisersArgs = {
   isEnabled?: boolean
   search?: string
 }
-
-export type AccountType = 'Bank' | 'Cash' | 'Brokerage' | 'Property' | 'Credit' | 'Other'
-
-export type AccountStatus = 'Active' | 'Closed'
-
-export type AccountSummary = {
-  id: number
-  customerId: number
-  customerName: string
-  name: string
-  type: AccountType
-  status: AccountStatus
-  currency: string
-}
-
-export type GetAccountsArgs = {
-  page?: number
-  pageSize?: number
-  customerId?: number
-  status?: AccountStatus
-  search?: string
-}

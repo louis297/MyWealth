@@ -2,12 +2,10 @@ import { baseApi } from '../../shared/api/baseApi'
 import type { PaginatedList } from '../../shared/types/pagination'
 import { toSearchParams } from '../../shared/utils/searchParams'
 import type {
-  AccountSummary,
   AdviserLookup,
   CreateCustomerRequest,
   CreatedId,
   Customer,
-  GetAccountsArgs,
   GetAdvisersArgs,
   GetCustomersArgs,
   UpdateCustomerRequest,
@@ -62,15 +60,6 @@ export const customersApi = baseApi.injectEndpoints({
       query: (args) => `/advisers${toSearchParams(args ?? {})}`,
       providesTags: [{ type: 'Adviser', id: 'LIST' }],
     }),
-    getAccounts: builder.query<PaginatedList<AccountSummary>, GetAccountsArgs | void>({
-      query: (args) => `/accounts${toSearchParams(args ?? {})}`,
-      providesTags: (_result, _error, args) => [
-        {
-          type: 'Account',
-          id: args?.customerId !== undefined ? `CUSTOMER-${args.customerId}` : 'LIST',
-        },
-      ],
-    }),
   }),
 })
 
@@ -81,5 +70,4 @@ export const {
   useUpdateCustomerMutation,
   useDisableCustomerMutation,
   useGetAdvisersQuery,
-  useGetAccountsQuery,
 } = customersApi
