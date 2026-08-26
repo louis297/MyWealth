@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import { PageHeader } from '../../shared/components/PageHeader'
 import { useGetAccountByIdQuery } from './accountsApi'
+import { AccountEditSection } from './components/AccountEditSection'
 import { AccountStatusBadge } from './components/AccountStatusBadge'
 import { HoldingsSection } from './components/HoldingsSection'
 
@@ -127,6 +128,7 @@ export function AccountDetailPage() {
         </div>
       </dl>
 
+      <AccountEditSection account={data} />
       <HoldingsSection accountId={data.id} />
     </div>
   )

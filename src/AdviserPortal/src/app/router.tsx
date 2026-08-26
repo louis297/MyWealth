@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { AccountCreatePage } from '../features/accounts/AccountCreatePage'
 import { AccountDetailPage } from '../features/accounts/AccountDetailPage'
 import { AccountListPage } from '../features/accounts/AccountListPage'
 import { AdvisersPage } from '../features/advisers/AdvisersPage'
@@ -40,6 +41,11 @@ export const router = createBrowserRouter([
             handle: { title: 'Customer' },
           },
           { path: 'accounts', element: <AccountListPage /> },
+          {
+            path: 'accounts/new',
+            element: <AccountCreatePage />,
+            handle: { title: 'New account' },
+          },
           {
             path: 'accounts/:accountId',
             element: <AccountDetailPage />,
