@@ -129,7 +129,7 @@ export function AccountDetailPage() {
       </dl>
 
       <AccountEditSection account={data} />
-      <HoldingsSection accountId={data.id} />
+      <HoldingsSection account={data} />
     </div>
   )
 }
