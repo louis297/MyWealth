@@ -73,7 +73,7 @@ export function AdviserForm({
               type="email"
               required
               maxLength={256}
-              autoComplete="off"
+              autoComplete="username"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="rounded border border-slate-300 px-3 py-2"

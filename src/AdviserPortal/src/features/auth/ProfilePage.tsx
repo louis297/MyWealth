@@ -91,7 +91,7 @@ function DisplayNameForm({ currentUser }: { currentUser: CurrentUser }) {
   )
 }
 
-function ChangePasswordForm() {
+function ChangePasswordForm({ email }: { email: string }) {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -139,6 +139,17 @@ function ChangePasswordForm() {
             Password changed.
           </p>
         ) : null}
+
+        <input
+          type="text"
+          name="username"
+          autoComplete="username"
+          value={email}
+          readOnly
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only"
+        />
 
         <label className="flex flex-col gap-1 text-sm" htmlFor="profile-current-password">
           Current password
@@ -240,11 +251,8 @@ export function ProfilePage() {
         </div>
       </dl>
 
-      <DisplayNameForm
-        key={`${currentUser.userId}-${currentUser.displayName}`}
-        currentUser={currentUser}
-      />
-      <ChangePasswordForm />
+      <DisplayNameForm currentUser={currentUser} />
+      <ChangePasswordForm email={currentUser.email} />
     </div>
   )
 }
