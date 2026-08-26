@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { AccountDetailPage } from '../features/accounts/AccountDetailPage'
 import { AccountListPage } from '../features/accounts/AccountListPage'
 import { AdvisersPage } from '../features/advisers/AdvisersPage'
 import { LoginPage } from '../features/auth/LoginPage'
@@ -39,6 +40,11 @@ export const router = createBrowserRouter([
             handle: { title: 'Customer' },
           },
           { path: 'accounts', element: <AccountListPage /> },
+          {
+            path: 'accounts/:accountId',
+            element: <AccountDetailPage />,
+            handle: { title: 'Account' },
+          },
           { path: 'transactions', element: <TransactionsPage /> },
           { path: 'advisers', element: <AdvisersPage /> },
           { path: 'profile', element: <ProfilePage /> },
